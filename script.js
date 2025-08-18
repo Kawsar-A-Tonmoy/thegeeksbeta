@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, setPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js'; // [FIX] Added setPersistence and browserSessionPersistence
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 // Initialize Firebase
@@ -24,22 +24,6 @@ const statusColors = {
   Delivered: '#22c55e',
   Cancelled: '#ef4444'
 };
-
-// [FIX] Initialize authentication to ensure anonymous sign-in
-async function initializeAuth() {
-  try {
-    await setPersistence(auth, browserSessionPersistence); // [FIX] Use modular SDK for persistence
-    if (!auth.currentUser) {
-      await signInAnonymously(auth);
-      console.log('Initialized anonymous user with UID:', auth.currentUser?.uid);
-    } else {
-      console.log('User already authenticated:', auth.currentUser.uid);
-    }
-  } catch (err) {
-    console.error('Error initializing anonymous auth:', err);
-    alert('Failed to initialize authentication: ' + err.message);
-  }
-}
 
 // ====== UTIL ======
 async function loadProducts() {
@@ -152,18 +136,6 @@ function updateDeliveryCharge() {
 
 // ====== CHECKOUT MODAL FLOW ======
 async function openCheckoutModal(productId) {
-  // [FIX] Ensure anonymous authentication for guest users
-  if (!auth.currentUser) {
-    try {
-      await signInAnonymously(auth);
-      console.log('Guest signed in anonymously with UID:', auth.currentUser?.uid);
-    } catch (err) {
-      console.error('Anonymous sign-in failed:', err);
-      alert('Error signing in as guest: ' + err.message);
-      return;
-    }
-  }
-
   const products = await loadProducts();
   const p = products.find(x => x.id === productId);
   if (!p) return;
@@ -231,19 +203,6 @@ async function submitCheckoutOrder(e) {
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
 
-  // [FIX] Ensure user is authenticated before proceeding
-  if (!auth.currentUser) {
-    try {
-      await signInAnonymously(auth);
-      console.log('Guest signed in anonymously for order with UID:', auth.currentUser?.uid);
-    } catch (err) {
-      console.error('Anonymous sign-in failed during order:', err);
-      alert('Error signing in: ' + err.message);
-      btn.disabled = false;
-      return;
-    }
-  }
-
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
@@ -277,8 +236,7 @@ async function submitCheckoutOrder(e) {
     paymentMethod: document.getElementById('co-payment').value,
     paymentNumber: document.getElementById('co-payment-number').value.trim(),
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
-    status: 'Pending',
-    userId: auth.currentUser?.uid || null // [FIX] Include userId for tracking
+    status: 'Pending'
   };
 
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
@@ -294,9 +252,7 @@ async function submitCheckoutOrder(e) {
   }
 
   try {
-    console.log('Placing order with data:', orderData); // [FIX] Debug log
     const docRef = await addDoc(collection(db, 'orders'), orderData);
-    console.log('Order created with ID:', docRef.id); // [FIX] Debug log
     await updateStockAfterOrder(productId, qty);
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
@@ -309,28 +265,16 @@ async function submitCheckoutOrder(e) {
   }
 }
 
-// ====== FIXED: UPDATE STOCK WITH TRANSACTION ======
 async function updateStockAfterOrder(productId, qty) {
-  const productRef = doc(db, 'products', productId);
   try {
-    await runTransaction(db, async (transaction) => {
-      const productDoc = await transaction.get(productRef);
-      if (!productDoc.exists()) {
-        throw new Error("Product does not exist!");
-      }
-
-      const currentStock = Number(productDoc.data().stock) || 0;
-      if (currentStock < qty) {
-        throw new Error(`Not enough stock available. Only ${currentStock} left.`);
-      }
-
-      const newStock = Math.floor(currentStock - qty); // [FIX] Ensure integer
-      console.log(`Updating stock for product ${productId}: ${currentStock} -> ${newStock}`); // [FIX] Debug log
-      transaction.update(productRef, { stock: newStock });
-    });
+    const productRef = doc(db, 'products', productId);
+    const product = await getDoc(productRef);
+    if (product.exists()) {
+      const newStock = Number(product.data().stock) - qty;
+      await updateDoc(productRef, { stock: newStock });
+    }
   } catch (err) {
-    console.error("Error updating stock in transaction:", err);
-    throw err;
+    console.error('Error updating stock:', err);
   }
 }
 
@@ -554,9 +498,6 @@ function setupStatusForm() {
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // [FIX] Initialize authentication before any Firestore operations
-  await initializeAuth();
-
   // Common
   displayProducts();
 
@@ -569,19 +510,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (loginPanel && adminPanel) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        console.log('User logged in:', user.email || 'Anonymous');
+        console.log('User logged in:', user.email);
         loginPanel.style.display = 'none';
         adminPanel.style.display = 'block';
         await renderDataTable();
         await renderOrdersTable();
       } else {
-        console.log('No user logged in, signing in anonymously');
-        try {
-          await signInAnonymously(auth);
-        } catch (err) {
-          console.error('Anonymous sign-in failed:', err);
-          alert('Error signing in anonymously: ' + err.message);
-        }
+        console.log('No user logged in');
+        loginPanel.style.display = 'block';
+        adminPanel.style.display = 'none';
       }
     });
 
