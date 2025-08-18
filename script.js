@@ -1,6 +1,5 @@
-
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js'; // [FIX] Added signInAnonymously
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
@@ -137,6 +136,18 @@ function updateDeliveryCharge() {
 
 // ====== CHECKOUT MODAL FLOW ======
 async function openCheckoutModal(productId) {
+  // [FIX] Ensure anonymous authentication for guest users
+  if (!auth.currentUser) {
+    try {
+      await signInAnonymously(auth);
+      console.log('Guest signed in anonymously');
+    } catch (err) {
+      console.error('Anonymous sign-in failed:', err);
+      alert('Error signing in as guest: ' + err.message);
+      return;
+    }
+  }
+
   const products = await loadProducts();
   const p = products.find(x => x.id === productId);
   if (!p) return;
@@ -237,7 +248,8 @@ async function submitCheckoutOrder(e) {
     paymentMethod: document.getElementById('co-payment').value,
     paymentNumber: document.getElementById('co-payment-number').value.trim(),
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
-    status: 'Pending'
+    status: 'Pending',
+    userId: auth.currentUser?.uid || null // [FIX] Added userId for tracking
   };
 
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
@@ -281,8 +293,9 @@ async function updateStockAfterOrder(productId, qty) {
         throw new Error(`Not enough stock available. Only ${currentStock} left.`);
       }
 
+      // [FIX] Ensure stock is updated as an integer
       transaction.update(productRef, {
-        stock: currentStock - qty
+        stock: Math.floor(currentStock - qty)
       });
     });
   } catch (err) {
@@ -511,6 +524,17 @@ function setupStatusForm() {
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
+  // [FIX] Enable anonymous authentication for guest users
+  try {
+    await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION); // Use session persistence
+    if (!auth.currentUser) {
+      await signInAnonymously(auth);
+      console.log('Initialized anonymous user');
+    }
+  } catch (err) {
+    console.error('Error initializing anonymous auth:', err);
+  }
+
   // Common
   displayProducts();
 
@@ -523,15 +547,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (loginPanel && adminPanel) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        console.log('User logged in:', user.email);
+        console.log('User logged in:', user.email || 'Anonymous'); // [FIX] Handle anonymous users
         loginPanel.style.display = 'none';
         adminPanel.style.display = 'block';
         await renderDataTable();
         await renderOrdersTable();
       } else {
-        console.log('No user logged in');
-        loginPanel.style.display = 'block';
-        adminPanel.style.display = 'none';
+        console.log('No user logged in, signing in anonymously');
+        try {
+          await signInAnonymously(auth); // [FIX] Ensure anonymous auth for guests
+        } catch (err) {
+          console.error('Anonymous sign-in failed:', err);
+        }
       }
     });
 
@@ -556,5 +583,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
-
-
