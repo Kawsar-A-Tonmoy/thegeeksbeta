@@ -142,100 +142,176 @@ async function openCheckoutModal(productId) {
 
   const price = p.price === 'TBA' ? 0 : Number(p.price) || 0;
   const discount = Number(p.discount) || 0;
-  const finalPrice = discount > 0 ? (price - discount) : price;
+  const unit = price - discount;
 
-  document.getElementById('co-product').textContent = p.name;
-  document.getElementById('co-color').textContent = p.color || '-';
-  document.getElementById('co-price').textContent = `৳${finalPrice.toFixed(2)}`;
+  document.getElementById('co-product-id').value = p.id;
+  document.getElementById('co-product-name').value = p.name;
+  document.getElementById('co-color').value = p.color || '';
+  document.getElementById('co-price').value = unit.toFixed(2);
+  document.getElementById('co-unit-price-raw').value = unit.toString();
+  document.getElementById('co-available-stock').value = String(p.stock);
   document.getElementById('co-qty').value = 1;
-  document.getElementById('co-qty').max = p.stock || 1;
+  document.getElementById('co-qty').max = p.stock;
+  document.getElementById('co-payment').value = '';
+  document.getElementById('co-payment-number').value = '';
+  document.getElementById('co-txn').value = '';
+  document.getElementById('co-name').value = '';
+  document.getElementById('co-phone').value = '';
+  document.getElementById('co-address').value = '';
+  document.getElementById('co-note').textContent = '';
+
   document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
   document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
-  document.getElementById('co-total').textContent = `৳${(finalPrice + DELIVERY_FEE).toFixed(2)}`;
-  document.getElementById('co-product-id').value = p.id;
 
-  document.getElementById('checkout-modal').classList.add('show');
+  updateTotalInModal();
+
+  const modal = document.getElementById('checkout-modal');
+  modal.classList.add('show');
+}
+
+function closeCheckoutModal() {
+  const modal = document.getElementById('checkout-modal');
+  modal.classList.remove('show');
+}
+
+function updateTotalInModal() {
+  const qty = Number(document.getElementById('co-qty').value) || 1;
+  const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
+  const delivery = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
+  const total = (qty * unit) + delivery;
+  document.getElementById('co-total').value = total.toFixed(2);
+}
+
+function handlePaymentChange(e) {
+  const method = e.target.value;
+  const note = document.getElementById('co-note');
+  const paymentNumberInput = document.getElementById('co-payment-number');
+  if (method === 'Bkash') {
+    note.textContent = `Send money to ${BKASH_NUMBER} and provide transaction ID.`;
+    paymentNumberInput.value = BKASH_NUMBER;
+  } else if (method === 'Cash on Delivery') {
+    note.textContent = `Contact ${COD_NUMBER} for confirmation.`;
+    paymentNumberInput.value = COD_NUMBER;
+  } else {
+    note.textContent = '';
+    paymentNumberInput.value = '';
+  }
 }
 
 async function submitCheckoutOrder(e) {
   e.preventDefault();
+  const btn = document.getElementById('place-order-btn');
+  btn.disabled = true;
 
   const productId = document.getElementById('co-product-id').value;
-  const quantity = Number(document.getElementById('co-qty').value);
-  const name = document.getElementById('co-name').value.trim();
-  const phone = document.getElementById('co-phone').value.trim();
-  const address = document.getElementById('co-address').value.trim();
-  const paymentMethod = document.getElementById('co-payment').value;
-  const paymentNumber = document.getElementById('co-pay-number').value.trim();
-  const transactionId = document.getElementById('co-txn-id').value.trim();
+  const qty = Number(document.getElementById('co-qty').value);
+  const available = Number(document.getElementById('co-available-stock').value);
+  if (qty <= 0) {
+    alert('Quantity must be at least 1.');
+    btn.disabled = false;
+    return;
+  }
+  if (qty > available) {
+    alert(`Quantity exceeds available stock of ${available}.`);
+    btn.disabled = false;
+    return;
+  }
 
-  if (!name || !phone || !address || !paymentMethod) {
+  const unit = Number(document.getElementById('co-unit-price-raw').value);
+  const delivery = Number(document.getElementById('co-delivery').dataset.fee);
+  const total = (qty * unit) + delivery;
+
+  const orderData = {
+    timeISO: new Date().toISOString(),
+    productId,
+    productName: document.getElementById('co-product-name').value,
+    color: document.getElementById('co-color').value,
+    unitPrice: unit,
+    quantity: qty,
+    deliveryFee: delivery,
+    total,
+    customerName: document.getElementById('co-name').value.trim(),
+    phone: document.getElementById('co-phone').value.trim(),
+    address: document.getElementById('co-address').value.trim(),
+    paymentMethod: document.getElementById('co-payment').value,
+    paymentNumber: document.getElementById('co-payment-number').value.trim(),
+    transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
+    status: 'Pending'
+  };
+
+  if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
     alert('Please fill all required fields.');
+    btn.disabled = false;
     return;
   }
 
-  const products = await loadProducts();
-  const product = products.find(p => p.id === productId);
-  if (!product || product.stock < quantity) {
-    alert('Insufficient stock or product not found.');
+  if (orderData.paymentMethod === 'Bkash' && (!orderData.paymentNumber || !orderData.transactionId)) {
+    alert('Please provide payment number and transaction ID for Bkash.');
+    btn.disabled = false;
     return;
   }
-
-  const deliveryFee = Number(document.getElementById('co-delivery').dataset.fee);
-  const price = Number(product.price) || 0;
-  const discount = Number(product.discount) || 0;
-  const finalPrice = discount > 0 ? (price - discount) : price;
-  const total = (finalPrice * quantity) + deliveryFee;
 
   try {
-    const docRef = await addDoc(collection(db, 'orders'), {
-      productName: product.name,
-      color: product.color || '-',
-      unitPrice: finalPrice,
-      quantity: quantity,
-      deliveryFee: deliveryFee,
-      total: total,
-      customerName: name,
-      phone: phone,
-      address: address,
-      paymentMethod: paymentMethod,
-      paymentNumber: paymentNumber || '',
-      transactionId: transactionId || '',
-      status: 'Pending',
-      timeISO: new Date().toISOString()
-    });
-
-    // Update stock in products collection
-    const newStock = Number(product.stock) - quantity;
-    await updateDoc(doc(db, 'products', productId), { stock: newStock });
-
-    alert('Order placed successfully! Transaction ID: ' + docRef.id);
+    const docRef = await addDoc(collection(db, 'orders'), orderData);
+    await updateStockAfterOrder(productId, qty);
+    alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
-    displayProducts(); // Refresh product display
+    displayProducts();
   } catch (err) {
     console.error('Error placing order:', err);
     alert('Error placing order: ' + err.message);
+  } finally {
+    btn.disabled = false;
   }
 }
 
-function closeCheckoutModal() {
-  document.getElementById('checkout-modal').classList.remove('show');
-  document.getElementById('checkout-form').reset();
+async function updateStockAfterOrder(productId, qty) {
+  try {
+    const productRef = doc(db, 'products', productId);
+    const product = await getDoc(productRef);
+    if (product.exists()) {
+      const newStock = Number(product.data().stock) - qty;
+      await updateDoc(productRef, { stock: newStock });
+    }
+  } catch (err) {
+    console.error('Error updating stock:', err);
+  }
 }
 
-function handlePaymentChange(e) {
-  const payNumber = document.getElementById('co-pay-number');
-  payNumber.required = e.target.value !== 'Cash on Delivery';
-  payNumber.value = e.target.value === 'Cash on Delivery' ? '' : payNumber.value;
-  updateTotalInModal();
-}
+// ====== ADMIN: ADD PRODUCT ======
+async function addProduct(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    name: form['add-name'].value.trim(),
+    price: form['add-price'].value.trim(),
+    discount: form['add-discount'].value.trim() || '0',
+    image: form['add-image'].value.trim(),
+    category: form['add-category'].value,
+    color: form['add-color'].value.trim(),
+    stock: form['add-stock'].value.trim() || '0',
+    description: form['add-desc'].value.trim()
+  };
 
-function updateTotalInModal() {
-  const price = Number(document.getElementById('co-price').textContent.replace('৳', '')) || 0;
-  const qty = Number(document.getElementById('co-qty').value) || 1;
-  const deliveryFee = Number(document.getElementById('co-delivery').dataset.fee) || 0;
-  const total = (price * qty) + deliveryFee;
-  document.getElementById('co-total').textContent = `৳${total.toFixed(2)}`;
+  if (!data.name || !data.price || !data.image || !data.category) {
+    alert('Please fill required fields.');
+    return;
+  }
+
+  if (data.price !== 'TBA' && isNaN(Number(data.price))) {
+    alert('Price must be a number or "TBA".');
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'products'), data);
+    form.reset();
+    renderDataTable();
+    alert('Product added successfully!');
+  } catch (err) {
+    console.error('Error adding product:', err);
+    alert('Error adding product: ' + err.message);
+  }
 }
 
 // ====== ADMIN: PRODUCTS TABLE ======
@@ -246,42 +322,50 @@ async function renderDataTable() {
   const products = await loadProducts();
   tbody.innerHTML = '';
 
+  const cols = [
+    { key: 'name', editable: true },
+    { key: 'price', editable: true },
+    { key: 'image', editable: true },
+    { key: 'category', editable: true },
+    { key: 'color', editable: true },
+    { key: 'discount', editable: true },
+    { key: 'stock', editable: true },
+    { key: 'description', editable: true }
+  ];
+
   products.forEach(p => {
     const tr = document.createElement('tr');
-    const tds = [
-      p.name,
-      '৳' + (Number(p.price) || 0).toFixed(2),
-      p.image,
-      p.category || '-',
-      p.color || '-',
-      '৳' + (Number(p.discount) || 0).toFixed(2),
-      p.stock || 0,
-      p.description || ''
-    ];
-    tds.forEach(v => {
+
+    cols.forEach(col => {
       const td = document.createElement('td');
-      td.textContent = v;
-      if (['name', 'price', 'image', 'category', 'color', 'discount', 'stock', 'description'].includes(tds.indexOf(v))) {
-        td.setAttribute('contenteditable', 'true');
-        td.addEventListener('blur', (e) => {
-          const field = ['name', 'price', 'image', 'category', 'color', 'discount', 'stock', 'description'][tds.indexOf(v)];
-          updateProductField(p.id, field, e.target.textContent);
-        });
-      }
+      td.contentEditable = col.editable;
+      td.textContent = p[col.key] || '';
+      td.addEventListener('blur', async (e) => {
+        const val = e.target.textContent.trim();
+        if (val === p[col.key]) return;
+        if (col.key === 'price' && val !== 'TBA' && isNaN(Number(val))) {
+          alert('Price must be a number or "TBA".');
+          e.target.textContent = p[col.key];
+          return;
+        }
+        await updateProductField(p.id, col.key, val);
+        if (col.key === 'stock' || col.key === 'price') {
+          const cur = (await loadProducts()).find(x => x.id === p.id);
+          tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
+        }
+      });
+
       tr.appendChild(td);
     });
 
-    const tdActions = document.createElement('td');
-    const edit = document.createElement('button');
-    edit.textContent = 'Edit';
-    edit.addEventListener('click', () => {
-      tds.forEach((_, i) => {
-        if (i < tds.length - 1) tr.children[i].setAttribute('contenteditable', 'true');
-      });
-    });
-    tdActions.appendChild(edit);
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.status = '1';
+    tdStatus.textContent = computeStatus(p);
+    tr.appendChild(tdStatus);
 
+    const tdActions = document.createElement('td');
     const del = document.createElement('button');
+    del.className = 'danger';
     del.textContent = 'Delete';
     del.addEventListener('click', async () => {
       if (confirm(`Delete "${p.name}"?`)) await deleteProductById(p.id);
