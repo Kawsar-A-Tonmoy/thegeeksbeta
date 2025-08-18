@@ -25,6 +25,22 @@ const statusColors = {
   Cancelled: '#ef4444'
 };
 
+// [FIX] Initialize authentication to ensure anonymous sign-in
+async function initializeAuth() {
+  try {
+    await setPersistence(auth, browserSessionPersistence); // [FIX] Use modular SDK for persistence
+    if (!auth.currentUser) {
+      await signInAnonymously(auth);
+      console.log('Initialized anonymous user with UID:', auth.currentUser?.uid);
+    } else {
+      console.log('User already authenticated:', auth.currentUser.uid);
+    }
+  } catch (err) {
+    console.error('Error initializing anonymous auth:', err);
+    alert('Failed to initialize authentication: ' + err.message);
+  }
+}
+
 // ====== UTIL ======
 async function loadProducts() {
   try {
@@ -136,11 +152,11 @@ function updateDeliveryCharge() {
 
 // ====== CHECKOUT MODAL FLOW ======
 async function openCheckoutModal(productId) {
-  // Ensure anonymous authentication for guest users
+  // [FIX] Ensure anonymous authentication for guest users
   if (!auth.currentUser) {
     try {
       await signInAnonymously(auth);
-      console.log('Guest signed in anonymously');
+      console.log('Guest signed in anonymously with UID:', auth.currentUser?.uid);
     } catch (err) {
       console.error('Anonymous sign-in failed:', err);
       alert('Error signing in as guest: ' + err.message);
@@ -172,7 +188,7 @@ async function openCheckoutModal(productId) {
   document.getElementById('co-address').value = '';
   document.getElementById('co-note').textContent = '';
 
-  document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE Ascending
+  document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
   document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
 
   updateTotalInModal();
@@ -215,6 +231,19 @@ async function submitCheckoutOrder(e) {
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
 
+  // [FIX] Ensure user is authenticated before proceeding
+  if (!auth.currentUser) {
+    try {
+      await signInAnonymously(auth);
+      console.log('Guest signed in anonymously for order with UID:', auth.currentUser?.uid);
+    } catch (err) {
+      console.error('Anonymous sign-in failed during order:', err);
+      alert('Error signing in: ' + err.message);
+      btn.disabled = false;
+      return;
+    }
+  }
+
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
@@ -249,7 +278,7 @@ async function submitCheckoutOrder(e) {
     paymentNumber: document.getElementById('co-payment-number').value.trim(),
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
     status: 'Pending',
-    userId: auth.currentUser?.uid || null // Include userId for tracking
+    userId: auth.currentUser?.uid || null // [FIX] Include userId for tracking
   };
 
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
@@ -265,7 +294,9 @@ async function submitCheckoutOrder(e) {
   }
 
   try {
+    console.log('Placing order with data:', orderData); // [FIX] Debug log
     const docRef = await addDoc(collection(db, 'orders'), orderData);
+    console.log('Order created with ID:', docRef.id); // [FIX] Debug log
     await updateStockAfterOrder(productId, qty);
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
@@ -293,9 +324,9 @@ async function updateStockAfterOrder(productId, qty) {
         throw new Error(`Not enough stock available. Only ${currentStock} left.`);
       }
 
-      transaction.update(productRef, {
-        stock: Math.floor(currentStock - qty) // Ensure stock is an integer
-      });
+      const newStock = Math.floor(currentStock - qty); // [FIX] Ensure integer
+      console.log(`Updating stock for product ${productId}: ${currentStock} -> ${newStock}`); // [FIX] Debug log
+      transaction.update(productRef, { stock: newStock });
     });
   } catch (err) {
     console.error("Error updating stock in transaction:", err);
@@ -358,178 +389,6 @@ async function renderDataTable() {
     { key: 'description', editable: true }
   ];
 
-  products.forEachElementById('co-delivery').value = `Delivery Charge = ${deliveryFee}`;
-  document.getElementById('co-delivery').dataset.fee = deliveryFee;
-  updateTotalInModal();
-}
-
-// ====== CHECKOUT MODAL FLOW ======
-async function openCheckoutModal(productId) {
-  // [FIX] Ensure anonymous authentication for guest users
-  if (!auth.currentUser) {
-    try {
-      await signInAnonymously(auth);
-      console.log('Guest signed in anonymously');
-    } catch (err) {
-      console.error('Anonymous sign-in failed:', err);
-      alert('Error signing in as guest: ' + err.message);
-      return;
-    }
-  }
-
-  const products = await loadProducts();
-  const p = products.find(x => x.id === productId);
-  if (!p) return;
-
-  const price = p.price === 'TBA' ? 0 : Number(p.price) || 0;
-  const discount = Number(p.discount) || 0;
-  const unit = price - discount;
-
-  document.getElementById('co-product-id').value = p.id;
-  document.getElementById('co-product-name').value = p.name;
-  document.getElementById('co-color').value = p.color || '';
-  document.getElementById('co-price').value = unit.toFixed(2);
-  document.getElementById('co-unit-price-raw').value = unit.toString();
-  document.getElementById('co-available-stock').value = String(p.stock);
-  document.getElementById('co-qty').value = 1;
-  document.getElementById('co-qty').max = p.stock;
-  document.getElementById('co-payment').value = '';
-  document.getElementById('co-payment-number').value = '';
-  document.getElementById('co-txn').value = '';
-  document.getElementById('co-name').value = '';
-  document.getElementById('co-phone').value = '';
-  document.getElementById('co-address').value = '';
-  document.getElementById('co-note').textContent = '';
-
-  document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
-  document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
-
-  updateTotalInModal();
-
-  const modal = document.getElementById('checkout-modal');
-  modal.classList.add('show');
-}
-
-function closeCheckoutModal() {
-  const modal = document.getElementById('checkout-modal');
-  modal.classList.remove('show');
-}
-
-function updateTotalInModal() {
-  const qty = Number(document.getElementById('co-qty').value) || 1;
-  const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
-  const delivery = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
-  const total = (qty * unit) + delivery;
-  document.getElementById('co-total').value = total.toFixed(2);
-}
-
-function handlePaymentChange(e) {
-  const method = e.target.value;
-  const note = document.getElementById('co-note');
-  const paymentNumberInput = document.getElementById('co-payment-number');
-  if (method === 'Bkash Steiner) {
-    note.textContent = `Send money to ${BKASH_NUMBER} and provide transaction ID.`;
-    paymentNumberInput.value = BKASH_NUMBER;
-  } else if (method === 'Cash on Delivery') {
-    note.textContent = `Contact ${COD_NUMBER} for confirmation.`;
-    paymentNumberInput.value = COD_NUMBER;
-  } else {
-    note.textContent = '';
-    paymentNumberInput.value = '';
-  }
-}
-
-async function submitCheckoutOrder(e) {
-  e.preventDefault();
-  const btn = document.getElementById('place-order-btn');
-  btn.disabled = true;
-
-  const productId = document.getElementById('co-product-id').value;
-  const qty = Number(document.getElementById('co-qty').value);
-  const available = Number(document.getElementById('co-available-stock').value);
-  if (qty <= 0) {
-    alert('Quantity must be at least 1.');
-    btn.disabled = false;
-    return;
-  }
-  if (qty > available) {
-    alert(`Quantity exceeds available stock of ${available}.`);
-    btn.disabled = false;
-    return;
-  }
-
-  const unit = Number(document.getElementById('co-unit-price-raw').value);
-  const delivery = Number(document.getElementById('co-delivery').dataset.fee);
-  const total = (qty * unit) + delivery;
-
-  const orderData = {
-    timeISO: new Date().toISOString(),
-    productId,
-    productName: document.getElementById('co-product-name').value,
-    color: document.getElementById('co-color').value,
-    unitPrice: unit,
-    quantity: qty,
-    deliveryFee: delivery,
-    total,
-    customerName: document.getElementById('co-name').value.trim(),
-    phone: document.getElementById('co-phone').value.trim(),
-    address: document.getElementById('co-address').value.trim(),
-    paymentMethod: document.getElementById('co-payment').value,
-    paymentNumber: document.getElementById('co-payment-number').value.trim(),
-    transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
-    status: 'Pending',
-    userId: auth.currentUser?.uid || null // [FIX] Added userId for tracking
-  };
-
-  if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
-    alert('Please fill all required fields.');
-    btn.disabled = false;
-    return;
-  }
-
-  if (orderData.paymentMethod === 'Bkash' && (!orderData.paymentNumber || !orderData.transactionId)) {
-    alert('Please provide payment number and transaction ID for Bkash.');
-    btn.disabled = false;
-    return;
-  }
-
-  try {
-    const docRef = await addDoc(collection(db, 'orders'), orderData);
-    await updateStockAfterOrder(productId, qty);
-    alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
-    closeCheckoutModal();
-    displayProducts();
-();
-  try {
-    await addDoc(collection(db, 'products'), data);
-    form.reset();
-    renderDataTable();
-    alert('Product added successfully!');
-  } catch (err) {
-    console.error('Error adding product:', err);
-    alert('Error adding product: ' + err.message);
-  }
-}
-
-// ====== ADMIN: PRODUCTS TABLE ======
-async function renderDataTable() {
-  const tbody = document.getElementById('products-body');
-  if (!tbody) return;
-
-  const products = await loadProducts();
-  tbody.innerHTML = '';
-
-  const cols = [
-    { key: 'name', editable: true },
-    { key: 'price', editable: true },
-    { key: 'image', editable: true },
-    { key: 'category', editable: true },
-    { key: 'color', editable: true },
-    { key: 'discount', editable: true },
-    { key: 'stock', editable: true },
-    { key: 'description', editable: true }
-  ];
-
   products.forEach(p => {
     const tr = document.createElement('tr');
 
@@ -547,7 +406,7 @@ async function renderDataTable() {
         }
         await updateProductField(p.id, col.key, val);
         if (col.key === 'stock' || col.key === 'price') {
-          const cur = (await loadProducts()).find(x => x.id令 p.id);
+          const cur = (await loadProducts()).find(x => x.id === p.id);
           tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
         }
       });
@@ -688,23 +547,15 @@ function setupStatusForm() {
       alert(`Status: ${status}\n${statusExplanations[status] || 'Unknown status.'}`);
     } catch (err) {
       console.error('Error fetching status:', err);
+      alert('Error fetching status: ' + err.message);
     }
   });
 }
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // [FIX] Enable anonymous authentication with correct persistence
-  try {
-    await setPersistence(auth, browserSessionPersistence); // Updated to modular SDK
-    if (!auth.currentUser) {
-      await signInAnonymously(auth);
-      console.log('Initialized anonymous user');
-    }
-  } catch (err) {
-    console.error('Error initializing anonymous auth:', err);
-    alert('Error initializing anonymous auth: ' + err.message); // Improved user feedback
-  }
+  // [FIX] Initialize authentication before any Firestore operations
+  await initializeAuth();
 
   // Common
   displayProducts();
