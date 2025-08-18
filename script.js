@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 // Initialize Firebase
@@ -265,16 +265,28 @@ async function submitCheckoutOrder(e) {
   }
 }
 
+// ====== FIXED: UPDATE STOCK WITH TRANSACTION ======
 async function updateStockAfterOrder(productId, qty) {
+  const productRef = doc(db, 'products', productId);
   try {
-    const productRef = doc(db, 'products', productId);
-    const product = await getDoc(productRef);
-    if (product.exists()) {
-      const newStock = Number(product.data().stock) - qty;
-      await updateDoc(productRef, { stock: newStock });
-    }
+    await runTransaction(db, async (transaction) => {
+      const productDoc = await transaction.get(productRef);
+      if (!productDoc.exists()) {
+        throw new Error("Product does not exist!");
+      }
+
+      const currentStock = Number(productDoc.data().stock) || 0;
+      if (currentStock < qty) {
+        throw new Error(`Not enough stock available. Only ${currentStock} left.`);
+      }
+
+      transaction.update(productRef, {
+        stock: currentStock - qty
+      });
+    });
   } catch (err) {
-    console.error('Error updating stock:', err);
+    console.error("Error updating stock in transaction:", err);
+    throw err;
   }
 }
 
