@@ -268,7 +268,7 @@ async function submitCheckoutOrder(e) {
     const newStock = currentStock - qty;
 
     // 1. Update stock (guests allowed by rules)
-    await updateDoc(productRef, { stock: newStock });
+    await updateDoc(productRef, { stock: Number(newStock) });
 
     // 2. Create order (guests allowed by rules)
     await addDoc(collection(db, 'orders'), orderData);
@@ -575,5 +575,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
+
 
 
