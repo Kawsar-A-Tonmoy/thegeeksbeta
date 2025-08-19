@@ -69,7 +69,7 @@ async function displayProducts() {
   if (modal) {
     document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
     const form = document.getElementById('checkout-form');
-    form.addEventListener('submit', submitCheckoutOrder);
+    form.addEventListener('', submitCheckoutOrder);
     document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
     document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
     document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
@@ -203,7 +203,6 @@ async function submitCheckoutOrder(e) {
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
 
-  // Guest users can place orders and update stock without authentication, as per Firebase rules
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
@@ -264,6 +263,7 @@ async function submitCheckoutOrder(e) {
         throw new Error(`Insufficient stock. Only ${currentStock} available.`);
       }
       const newStock = currentStock - qty;
+      // Update stock without currentDocument precondition
       transaction.update(productRef, { stock: newStock });
       const newOrderRef = doc(collection(db, 'orders'));
       transaction.set(newOrderRef, orderData);
@@ -272,7 +272,7 @@ async function submitCheckoutOrder(e) {
     closeCheckoutModal();
     displayProducts();
   } catch (err) {
-    console.error('Error placing order:', err);
+    console.error('Error placing order:', err.code, err.message);
     alert('Error placing order: ' + err.message);
   } finally {
     btn.disabled = false;
@@ -570,3 +570,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
+
