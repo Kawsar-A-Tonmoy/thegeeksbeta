@@ -282,23 +282,36 @@ async function submitCheckoutOrder(e) {
 async function addProduct(e) {
   e.preventDefault();
   const form = e.target;
+  const stockStr = form['add-stock'].value.trim() || '0';
+  const discountStr = form['add-discount'].value.trim() || '0';
+  const priceStr = form['add-price'].value.trim();
+
+  if (isNaN(Number(stockStr))) {
+    alert('Stock must be a number.');
+    return;
+  }
+  if (isNaN(Number(discountStr))) {
+    alert('Discount must be a number.');
+    return;
+  }
+
   const data = {
     name: form['add-name'].value.trim(),
-    price: form['add-price'].value.trim(),
-    discount: form['add-discount'].value.trim() || '0',
+    price: priceStr === 'TBA' ? 'TBA' : Number(priceStr),
+    discount: Number(discountStr),
     image: form['add-image'].value.trim(),
     category: form['add-category'].value,
     color: form['add-color'].value.trim(),
-    stock: form['add-stock'].value.trim() || '0',
+    stock: Number(stockStr),
     description: form['add-desc'].value.trim()
   };
 
-  if (!data.name || !data.price || !data.image || !data.category) {
+  if (!data.name || (typeof data.price === 'undefined' || data.price === null) || !data.image || !data.category) {
     alert('Please fill required fields.');
     return;
   }
 
-  if (data.price !== 'TBA' && isNaN(Number(data.price))) {
+  if (data.price !== 'TBA' && isNaN(data.price)) {
     alert('Price must be a number or "TBA".');
     return;
   }
@@ -339,16 +352,29 @@ async function renderDataTable() {
     cols.forEach(col => {
       const td = document.createElement('td');
       td.contentEditable = col.editable;
-      td.textContent = p[col.key] || '';
+      td.textContent = p[col.key] != null ? p[col.key] : '';
       td.addEventListener('blur', async (e) => {
-        const val = e.target.textContent.trim();
-        if (val === p[col.key]) return;
-        if (col.key === 'price' && val !== 'TBA' && isNaN(Number(val))) {
-          alert('Price must be a number or "TBA".');
-          e.target.textContent = p[col.key];
-          return;
+        let val = e.target.textContent.trim();
+        if (val === (p[col.key] != null ? String(p[col.key]) : '')) return;
+
+        let updateValue = val;
+        if (col.key === 'price') {
+          if (val !== 'TBA' && isNaN(Number(val))) {
+            alert('Price must be a number or "TBA".');
+            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
+            return;
+          }
+          updateValue = val === 'TBA' ? 'TBA' : Number(val);
+        } else if (col.key === 'discount' || col.key === 'stock') {
+          if (isNaN(Number(val))) {
+            alert(`${col.key.charAt(0).toUpperCase() + col.key.slice(1)} must be a number.`);
+            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
+            return;
+          }
+          updateValue = Number(val);
         }
-        await updateProductField(p.id, col.key, val);
+
+        await updateProductField(p.id, col.key, updateValue);
         if (col.key === 'stock' || col.key === 'price') {
           const cur = (await loadProducts()).find(x => x.id === p.id);
           tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
