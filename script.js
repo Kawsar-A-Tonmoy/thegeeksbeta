@@ -252,31 +252,37 @@ async function submitCheckoutOrder(e) {
     return;
   }
 
-  try {
-    await runTransaction(db, async (transaction) => {
-      const productRef = doc(db, 'products', productId);
-      const productSnap = await transaction.get(productRef);
-      if (!productSnap.exists()) {
-        throw new Error('Product not found.');
-      }
-      const currentStock = Number(productSnap.data().stock);
-      if (currentStock < qty) {
-        throw new Error(`Insufficient stock. Only ${currentStock} available.`);
-      }
-      const newStock = currentStock - qty;
-      transaction.update(productRef, { stock: newStock });
-      const newOrderRef = doc(collection(db, 'orders'));
-      transaction.set(newOrderRef, orderData);
-    });
-    alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
-    closeCheckoutModal();
-    displayProducts();
-  } catch (err) {
-    console.error('Error placing order:', err);
-    alert('Error placing order: ' + err.message);
-  } finally {
-    btn.disabled = false;
+try {
+  const productRef = doc(db, 'products', productId);
+  const productSnap = await getDoc(productRef);
+
+  if (!productSnap.exists()) {
+    throw new Error('Product not found.');
   }
+
+  const currentStock = Number(productSnap.data().stock);
+  if (currentStock < qty) {
+    throw new Error(`Insufficient stock. Only ${currentStock} available.`);
+  }
+
+  const newStock = currentStock - qty;
+
+  // 1. Update stock only
+  await updateDoc(productRef, { stock: newStock });
+
+  // 2. Create order
+  await addDoc(collection(db, 'orders'), orderData);
+
+  alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
+  closeCheckoutModal();
+  displayProducts();
+} catch (err) {
+  console.error('Error placing order:', err);
+  alert('Error placing order: ' + err.message);
+} finally {
+  btn.disabled = false;
+}
+
 }
 
 // ====== ADMIN: ADD PRODUCT ======
@@ -570,3 +576,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
+
