@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 // Initialize Firebase
@@ -252,8 +252,21 @@ async function submitCheckoutOrder(e) {
   }
 
   try {
-    const docRef = await addDoc(collection(db, 'orders'), orderData);
-    await updateStockAfterOrder(productId, qty);
+    await runTransaction(db, async (transaction) => {
+      const productRef = doc(db, 'products', productId);
+      const productSnap = await transaction.get(productRef);
+      if (!productSnap.exists()) {
+        throw new Error('Product not found.');
+      }
+      const currentStock = Number(productSnap.data().stock);
+      if (currentStock < qty) {
+        throw new Error(`Insufficient stock. Only ${currentStock} available.`);
+      }
+      const newStock = currentStock - qty;
+      transaction.update(productRef, { stock: newStock });
+      const newOrderRef = doc(collection(db, 'orders'));
+      transaction.set(newOrderRef, orderData);
+    });
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
     displayProducts();
@@ -262,19 +275,6 @@ async function submitCheckoutOrder(e) {
     alert('Error placing order: ' + err.message);
   } finally {
     btn.disabled = false;
-  }
-}
-
-async function updateStockAfterOrder(productId, qty) {
-  try {
-    const productRef = doc(db, 'products', productId);
-    const product = await getDoc(productRef);
-    if (product.exists()) {
-      const newStock = Number(product.data().stock) - qty;
-      await updateDoc(productRef, { stock: newStock });
-    }
-  } catch (err) {
-    console.error('Error updating stock:', err);
   }
 }
 
