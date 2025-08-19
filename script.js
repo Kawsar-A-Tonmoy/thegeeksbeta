@@ -203,6 +203,7 @@ async function submitCheckoutOrder(e) {
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
 
+  // Guest users can place orders and update stock without authentication, as per Firebase rules
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
