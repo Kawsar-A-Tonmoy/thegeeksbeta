@@ -203,10 +203,10 @@ async function submitCheckoutOrder(e) {
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
 
-  // Guest users can place orders and update stock without authentication, as per Firebase rules
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
+
   if (qty <= 0) {
     alert('Quantity must be at least 1.');
     btn.disabled = false;
@@ -252,37 +252,36 @@ async function submitCheckoutOrder(e) {
     return;
   }
 
-try {
-  const productRef = doc(db, 'products', productId);
-  const productSnap = await getDoc(productRef);
+  try {
+    const productRef = doc(db, 'products', productId);
+    const productSnap = await getDoc(productRef);
 
-  if (!productSnap.exists()) {
-    throw new Error('Product not found.');
+    if (!productSnap.exists()) {
+      throw new Error('Product not found.');
+    }
+
+    const currentStock = Number(productSnap.data().stock);
+    if (currentStock < qty) {
+      throw new Error(`Insufficient stock. Only ${currentStock} available.`);
+    }
+
+    const newStock = currentStock - qty;
+
+    // 1. Update stock (guests allowed by rules)
+    await updateDoc(productRef, { stock: newStock });
+
+    // 2. Create order (guests allowed by rules)
+    await addDoc(collection(db, 'orders'), orderData);
+
+    alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
+    closeCheckoutModal();
+    displayProducts();
+  } catch (err) {
+    console.error('Error placing order:', err);
+    alert('Error placing order: ' + err.message);
+  } finally {
+    btn.disabled = false;
   }
-
-  const currentStock = Number(productSnap.data().stock);
-  if (currentStock < qty) {
-    throw new Error(`Insufficient stock. Only ${currentStock} available.`);
-  }
-
-  const newStock = currentStock - qty;
-
-  // 1. Update stock only
-  await updateDoc(productRef, { stock: newStock });
-
-  // 2. Create order
-  await addDoc(collection(db, 'orders'), orderData);
-
-  alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
-  closeCheckoutModal();
-  displayProducts();
-} catch (err) {
-  console.error('Error placing order:', err);
-  alert('Error placing order: ' + err.message);
-} finally {
-  btn.disabled = false;
-}
-
 }
 
 // ====== ADMIN: ADD PRODUCT ======
@@ -576,4 +575,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
+
 
