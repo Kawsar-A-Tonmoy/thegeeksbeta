@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
@@ -254,23 +254,24 @@ async function submitCheckoutOrder(e) {
 
   try {
     const productRef = doc(db, 'products', productId);
-    await runTransaction(db, async (transaction) => {
-      const productSnap = await transaction.get(productRef);
-      if (!productSnap.exists()) {
-        throw new Error('Product not found.');
-      }
+    const productSnap = await getDoc(productRef);
 
-      const currentStock = Number(productSnap.data().stock);
-      if (currentStock < qty) {
-        throw new Error(`Insufficient stock. Only ${currentStock} available.`);
-      }
+    if (!productSnap.exists()) {
+      throw new Error('Product not found.');
+    }
 
-      const newStock = currentStock - qty;
+    const currentStock = Number(productSnap.data().stock);
+    if (currentStock < qty) {
+      throw new Error(`Insufficient stock. Only ${currentStock} available.`);
+    }
 
-      // Update stock and create order in a transaction
-      transaction.update(productRef, { stock: Number(newStock) });
-      transaction.set(doc(collection(db, 'orders')), orderData);
-    });
+    const newStock = currentStock - qty;
+
+    // 1. Update stock (guests allowed by rules)
+    await updateDoc(productRef, { stock: Number(newStock) });
+
+    // 2. Create order (guests allowed by rules)
+    await addDoc(collection(db, 'orders'), orderData);
 
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
@@ -485,7 +486,9 @@ async function renderOrdersTable() {
       }
     });
     tdStatus.appendChild(select);
-    tr.appendChild(tr);
+    tr.appendChild(tdStatus);
+
+    tbody.appendChild(tr);
   });
 }
 
@@ -527,15 +530,6 @@ function setupStatusForm() {
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // Attempt anonymous login for guests
-  try {
-    await signInAnonymously(auth);
-    console.log('Guest signed in anonymously');
-  } catch (err) {
-    console.error('Anonymous login failed:', err);
-    alert('Error signing in as guest: ' + err.message);
-  }
-
   // Common
   displayProducts();
 
@@ -548,35 +542,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (loginPanel && adminPanel) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const idTokenResult = await user.getIdTokenResult();
-        const isAdmin = idTokenResult.claims.admin === true;
-        if (isAdmin && !user.isAnonymous) {
-          console.log('Admin logged in:', user.email);
-          loginPanel.style.display = 'none';
-          adminPanel.style.display = 'block';
-          await renderDataTable();
-          await renderOrdersTable();
-        } else {
-          console.log('Non-admin or anonymous user detected');
-          loginPanel.style.display = 'block';
-          adminPanel.style.display = 'none';
-          // Redirect anonymous users or non-admins away from admin page
-          if (window.location.pathname.includes('admin')) {
-            window.location.href = '/index.html'; // Adjust to your home page
-          }
-        }
+        console.log('User logged in:', user.email);
+        loginPanel.style.display = 'none';
+        adminPanel.style.display = 'block';
+        await renderDataTable();
+        await renderOrdersTable();
       } else {
         console.log('No user logged in');
         loginPanel.style.display = 'block';
         adminPanel.style.display = 'none';
-        // Sign in anonymously if no user
-        try {
-          await signInAnonymously(auth);
-          console.log('Guest signed in anonymously');
-        } catch (err) {
-          console.error('Anonymous login failed:', err);
-          alert('Error signing in as guest: ' + err.message);
-        }
       }
     });
 
@@ -601,3 +575,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
+
+
