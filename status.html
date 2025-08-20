@@ -3,33 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Status</title>
+  <title>Order Status - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-  </script>
-  <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
     <nav>
-      <a href="index.html">Products</a>
-      <a href="status.html">Order Status</a>
-      <a href="admin.html">Admin</a>
+      <div class="logo">
+        <img src="logo.png" alt="The Geek Shop Logo" height="40">
+      </div>
+      <div class="nav-links">
+        <a href="index.html">Products</a>
+        <a href="status.html">Order Status</a>
+        <a href="admin.html">Admin</a>
+      </div>
     </nav>
   </header>
 
+
+    <div class="card status-form">
+      <form class="form">
+        <div class="row">
+          <div>
+            <label for="transaction-id">Transaction ID</label>
+            <input type="text" id="transaction-id" placeholder="Enter your transaction ID">
+          </div>
+        </div>
+        <button type="submit">Check Status</button>
+      </form>
+    </div>
+
   <div class="container">
     <h1>Order Status</h1>
-    <form id="status-form" class="form">
-      <div>
-        <label>Transaction ID</label>
-        <input id="txn-id" required>
+
+    <section class="notice-section">
+      <div class="notice-card card">
+        <h3>Shipping Update</h3>
+        <p class="muted">All orders placed before 5 PM are shipped same day.</p>
       </div>
-      <button type="submit">Check Status</button>
-    </form>
+      <div class="notice-card card">
+        <h3>Return Policy</h3>
+        <p class="muted">30-day hassle-free returns on all products.</p>
+      </div>
+      <div class="notice-card card">
+        <h3>Support</h3>
+        <p class="muted">Contact us 24/7 at support@geekshop.com.</p>
+      </div>
+    </section>
+
   </div>
+
+  <footer>
+    <p>© All rights reserved by The Geek Shop</p>
+  </footer>
 </body>
 </html>
