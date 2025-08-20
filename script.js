@@ -207,6 +207,11 @@ async function submitCheckoutOrder(e) {
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
 
+  if (!productId) {
+    alert('Product ID is missing.');
+    btn.disabled = false;
+    return;
+  }
   if (qty <= 0) {
     alert('Quantity must be at least 1.');
     btn.disabled = false;
@@ -219,7 +224,17 @@ async function submitCheckoutOrder(e) {
   }
 
   const unit = Number(document.getElementById('co-unit-price-raw').value);
+  if (isNaN(unit)) {
+    alert('Invalid unit price.');
+    btn.disabled = false;
+    return;
+  }
   const delivery = Number(document.getElementById('co-delivery').dataset.fee);
+  if (isNaN(delivery)) {
+    alert('Invalid delivery fee.');
+    btn.disabled = false;
+    return;
+  }
   const total = (qty * unit) + delivery;
 
   const orderData = {
@@ -240,6 +255,8 @@ async function submitCheckoutOrder(e) {
     status: 'Pending'
   };
 
+  console.log('Order Data:', orderData); // Debug log
+
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
     alert('Please fill all required fields.');
     btn.disabled = false;
@@ -253,25 +270,29 @@ async function submitCheckoutOrder(e) {
   }
 
   try {
-    const productRef = doc(db, 'products', productId);
-    const productSnap = await getDoc(productRef);
+    await runTransaction(db, async (transaction) => {
+      const productRef = doc(db, 'products', productId);
+      const productSnap = await transaction.get(productRef);
 
-    if (!productSnap.exists()) {
-      throw new Error('Product not found.');
-    }
+      if (!productSnap.exists()) {
+        throw new Error('Product not found.');
+      }
 
-    const currentStock = Number(productSnap.data().stock);
-    if (currentStock < qty) {
-      throw new Error(`Insufficient stock. Only ${currentStock} available.`);
-    }
+      const currentStock = Number(productSnap.data().stock);
+      if (currentStock < qty) {
+        throw new Error(`Insufficient stock. Only ${currentStock} available.`);
+      }
 
-    const newStock = currentStock - qty;
+      const newStock = currentStock - qty;
+      console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
 
-    // 1. Update stock (guests allowed by rules)
-    await updateDoc(productRef, { stock: Number(newStock) });
+      // Update stock
+      transaction.update(productRef, { stock: Number(newStock) });
 
-    // 2. Create order (guests allowed by rules)
-    await addDoc(collection(db, 'orders'), orderData);
+      // Create order
+      const orderRef = doc(collection(db, 'orders'));
+      transaction.set(orderRef, orderData);
+    });
 
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
@@ -575,5 +596,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status page
   setupStatusForm();
 });
-
-
