@@ -3,13 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Geek Shop</title>
+  <title>Products</title>
   <link rel="stylesheet" href="style.css">
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+  </script>
+  <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
-    <nav>
-      <div class="logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." alt="The Geek Shop Logo"></div>
+     <nav>
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
+      </a>
       <div class="nav-links">
         <a href="index.html">Products</a>
         <a href="status.html">Order Status</a>
@@ -20,95 +28,93 @@
 
   <div class="container">
     <h1>Products</h1>
-
-    <div id="new-products" class="product-list new-hot-list"></div>
     <h2>New Added</h2>
-
-    <div id="hot-deals" class="product-list new-hot-list"></div>
+    <div id="new-products" class="product-list new-hot-list"></div>
     <h2>Hot Deals</h2>
-
-    <div id="all-products" class="product-list"></div>
+    <div id="hot-deals" class="product-list new-hot-list"></div>
     <h2>All Products</h2>
+    <div id="all-products" class="product-list"></div>
   </div>
 
-  <!-- Checkout Modal -->
   <div id="checkout-modal" class="modal">
     <div class="modal-content card">
       <div class="modal-header">
-        <h3>Checkout</h3>
-        <button id="close-modal-btn">Close</button>
+        <h2>Checkout</h2>
+        <button id="close-modal-btn" class="secondary">Close</button>
       </div>
       <form id="checkout-form" class="form">
         <div class="row">
-          <label>Product Name</label>
-          <input type="text" id="co-name" readonly>
+          <div>
+            <label>Product Name</label>
+            <input id="co-product-name" readonly>
+          </div>
+          <div>
+            <label>Color</label>
+            <input id="co-color" readonly>
+          </div>
         </div>
         <div class="row">
-          <label>Color</label>
-          <input type="text" id="co-color" readonly>
+          <div>
+            <label>Price (tk)</label>
+            <input id="co-price" readonly>
+            <input id="co-product-id" type="hidden">
+            <input id="co-unit-price-raw" type="hidden">
+            <input id="co-available-stock" type="hidden">
+          </div>
+          <div>
+            <label>Quantity</label>
+            <input id="co-qty" type="number" min="1" required>
+          </div>
         </div>
         <div class="row">
-          <label>Price (tk)</label>
-          <input type="number" id="co-price" readonly>
+          <div>
+            <label>Delivery</label>
+            <input id="co-delivery" readonly>
+          </div>
+          <div>
+            <label>Total (tk)</label>
+            <input id="co-total" readonly>
+          </div>
         </div>
         <div class="row">
-          <label>Quantity</label>
-          <input type="number" id="co-qty" min="1" value="1">
+          <div>
+            <label>Name</label>
+            <input id="co-name" required>
+          </div>
+          <div>
+            <label>Phone</label>
+            <input id="co-phone" type="tel" required>
+          </div>
         </div>
-        <div class="row">
-          <label>Delivery</label>
-          <input type="number" id="co-delivery" readonly>
-        </div>
-        <div class="row">
-          <label>Total (tk)</label>
-          <input type="number" id="co-total" readonly>
-        </div>
-        <div class="row">
-          <label>Name</label>
-          <input type="text" id="co-customer-name" required>
-        </div>
-        <div class="row">
-          <label>Phone</label>
-          <input type="tel" id="co-phone" required>
-        </div>
-        <div class="row">
+        <div>
           <label>Address</label>
           <textarea id="co-address" required></textarea>
         </div>
         <div class="row">
-          <label>Payment Method</label>
-          <select id="co-payment" required>
-            <option value="" disabled selected>Select</option>
-            <option value="Cash on Delivery">Cash on Delivery</option>
-            <option value="Bkash">Bkash</option>
-          </select>
+          <div>
+            <label>Payment Method</label>
+            <select id="co-payment" required>
+              <option value="">Select</option>
+              <option value="Cash on Delivery">Cash on Delivery</option>
+              <option value="Bkash">Bkash</option>
+            </select>
+          </div>
+          <div>
+            <label>Payment Number</label>
+            <input id="co-payment-number" value="This text is read-only" readonly >
+          </div>
         </div>
-        <div class="row">
-          <label>Payment Number</label>
-          <input type="tel" id="co-pay-number" placeholder="For Bkash only">
-        </div>
-        <div class="row">
+        <div>
           <label>Transaction ID</label>
-          <input type="text" id="co-txn-id">
+          <input id="co-txn">
         </div>
-        <button type="submit">Place Order</button>
+        <p id="co-note" class="muted"></p>
+        <button id="place-order-btn" type="submit">Place Order</button>
       </form>
     </div>
   </div>
-
-  <!-- Message Modal -->
-  <div id="message-modal" class="modal">
-    <div class="modal-content card">
-      <div class="modal-header">
-        <h3>Order Confirmation</h3>
-        <button id="close-message-btn">Close</button>
-      </div>
-      <div class="form">
-        <p id="message-text"></p>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="script.js"></script>
 </body>
 </html>
+
+
+

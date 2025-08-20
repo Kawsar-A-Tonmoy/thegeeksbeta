@@ -3,45 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Status - The Geek Shop</title>
+  <title>Order Status</title>
   <link rel="stylesheet" href="style.css">
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+  </script>
+  <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
     <nav>
-      <div class="logo"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." alt="The Geek Shop Logo"></div>
-      <div class="nav-links">
-        <a href="index.html">Products</a>
-        <a href="status.html">Order Status</a>
-        <a href="admin.html">Admin</a>
-      </div>
+      <a href="index.html">Products</a>
+      <a href="status.html">Order Status</a>
+      <a href="admin.html">Admin</a>
     </nav>
   </header>
 
   <div class="container">
     <h1>Order Status</h1>
     <form id="status-form" class="form">
-      <div class="row">
+      <div>
         <label>Transaction ID</label>
-        <input type="text" id="txn-id" required>
+        <input id="txn-id" required>
       </div>
       <button type="submit">Check Status</button>
     </form>
   </div>
-
-  <!-- Message Modal -->
-  <div id="message-modal" class="modal">
-    <div class="modal-content card">
-      <div class="modal-header">
-        <h3>Order Status</h3>
-        <button id="close-message-btn">Close</button>
-      </div>
-      <div class="form">
-        <p id="message-text"></p>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="script.js"></script>
 </body>
 </html>
