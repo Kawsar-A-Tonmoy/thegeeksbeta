@@ -48,7 +48,7 @@ async function loadOrders() {
 }
 
 // ====== PRODUCT PAGE ======
-async function displayProducts() {
+async function displayProducts(searchTerm = '') {
   const sections = {
     new: document.getElementById('new-products'),
     hot: document.getElementById('hot-deals'),
@@ -58,7 +58,11 @@ async function displayProducts() {
   Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
 
   const products = await loadProducts();
-  products.forEach(p => {
+  const filteredProducts = searchTerm
+    ? products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : products;
+
+  filteredProducts.forEach(p => {
     if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
     if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
     if (sections.all) sections.all.appendChild(createProductCard(p));
@@ -74,6 +78,12 @@ async function displayProducts() {
     document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
     document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
   }
+
+  // Bind image viewer modal
+  const imageModal = document.getElementById('image-viewer-modal');
+  if (imageModal) {
+    document.getElementById('close-image-viewer-btn').onclick = closeImageViewerModal;
+  }
 }
 
 function createProductCard(p) {
@@ -87,7 +97,7 @@ function createProductCard(p) {
   card.className = 'card product-card';
 
   card.innerHTML = `
-    <img src="${p.image}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
+    <img src="${p.image}" alt="${p.name}" class="product-image" data-id="${p.id}" onerror="this.src=''; this.alt='Image not available';">
     <div class="badges">
       ${p.category === 'new' ? `<span class="badge new">NEW</span>` : ``}
       ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ``}
@@ -102,6 +112,7 @@ function createProductCard(p) {
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
       <button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>
+      <button data-id="${p.id}" class="share-btn">Share</button>
     </div>
   `;
 
@@ -112,7 +123,48 @@ function createProductCard(p) {
     });
   }
 
+  // Share button functionality
+  card.querySelector('.share-btn').addEventListener('click', (e) => {
+    const id = e.currentTarget.getAttribute('data-id');
+    const shareUrl = `${window.location.origin}/product/${id}`;
+    navigator.clipboard.write(shareUrl).then(() => {
+      alert('Product link copied to clipboard!');
+    }).catch(err => {
+      console.error('Error copying link:', err);
+      alert('Failed to copy link.');
+    });
+  });
+
+  // Image click to open viewer
+  card.querySelector('.product-image').addEventListener('click', () => {
+    openImageViewerModal(p.image, p.name);
+  });
+
   return card;
+}
+
+// ====== IMAGE VIEWER MODAL ======
+function openImageViewerModal(imageSrc, altText) {
+  const modal = document.getElementById('image-viewer-modal');
+  const img = document.getElementById('viewer-image');
+  img.src = imageSrc;
+  img.alt = altText;
+  modal.classList.add('show');
+}
+
+function closeImageViewerModal() {
+  const modal = document.getElementById('image-viewer-modal');
+  modal.classList.remove('show');
+}
+
+// ====== SEARCH FUNCTIONALITY ======
+function setupSearchBar() {
+  const searchInput = document.getElementById('product-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      displayProducts(e.target.value.trim());
+    });
+  }
 }
 
 // ====== DELIVERY CHARGE LOGIC ======
@@ -190,7 +242,7 @@ function handlePaymentChange(e) {
     note.textContent = `Send money to ${BKASH_NUMBER} and provide transaction ID.`;
     paymentNumberInput.value = BKASH_NUMBER;
   } else if (method === 'Cash on Delivery') {
-    note.textContent = `Provide the delivery charge to ${COD_NUMBER} and provide transaction ID.`;
+    note.textContent = `Send the delivery charge to ${COD_NUMBER} and provide transaction ID.`;
     paymentNumberInput.value = COD_NUMBER;
   } else {
     note.textContent = '';
@@ -470,7 +522,7 @@ async function renderOrdersTable() {
       o.color,
       '৳' + Number(o.unitPrice).toFixed(2),
       o.quantity,
-      '৳' + Number(o.deliveryFee).toFixed(2),
+      '৳' + Number(o.description).toFixed(2),
       '৳' + Number(o.total).toFixed(2),
       o.customerName,
       o.phone,
@@ -553,6 +605,7 @@ function setupStatusForm() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Common
   displayProducts();
+  setupSearchBar();
 
   // Admin page
   const loginPanel = document.getElementById('login-panel');
