@@ -48,7 +48,7 @@ async function loadOrders() {
 }
 
 // ====== PRODUCT PAGE ======
-async function displayProducts(searchTerm = '') {
+async function displayProducts(searchQuery = '') {
   const sections = {
     new: document.getElementById('new-products'),
     hot: document.getElementById('hot-deals'),
@@ -57,33 +57,19 @@ async function displayProducts(searchTerm = '') {
   if (!sections.all) return; // Not on product page
   Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
 
-  const products = await loadProducts();
-  let filteredProducts = products;
-
-  // Check if URL contains a product ID (e.g., /product/:id)
-  const urlParams = new URLSearchParams(window.location.search);
-  const productId = window.location.pathname.match(/^\/product\/(.+)/)?.[1];
-
-  if (productId) {
-    // If a product ID is in the URL, show only that product
-    filteredProducts = products.filter(p => p.id === productId);
-    if (filteredProducts.length === 0) {
-      sections.all.innerHTML = '<p>Product not found.</p>';
-      return;
-    }
-    // Hide section headings for single product view
-    document.querySelectorAll('h3').forEach(h3 => h3.style.display = 'none');
-  } else if (searchTerm) {
-    // Apply search filter if no product ID and search term exists
-    filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  let products = await loadProducts();
+  if (searchQuery) {
+    searchQuery = searchQuery.toLowerCase();
+    products = products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery) || 
+      (p.description && p.description.toLowerCase().includes(searchQuery)) ||
+      (p.color && p.color.toLowerCase().includes(searchQuery))
+    );
   }
-
-  filteredProducts.forEach(p => {
-    if (!productId) {
-      // Show in respective sections if not a single product view
-      if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
-      if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
-    }
+  
+  products.forEach(p => {
+    if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
+    if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
     if (sections.all) sections.all.appendChild(createProductCard(p));
   });
 
@@ -96,17 +82,32 @@ async function displayProducts(searchTerm = '') {
     document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
     document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
     document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
-  }
 
-  // Bind image viewer modal
-  const imageModal = document.getElementById('image-viewer-modal');
-  if (imageModal) {
-    document.getElementById('close-image-viewer-btn').onclick = closeImageViewerModal;
-    imageModal.addEventListener('click', (e) => {
-      if (e.target === imageModal) {
-        closeImageViewerModal();
+    // Bind image viewer
+    const viewer = document.getElementById('image-viewer');
+    const viewerImage = document.getElementById('viewer-image');
+    document.querySelectorAll('.product-card img').forEach(img => {
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewerImage.src = img.src;
+        viewerImage.alt = img.alt;
+        viewer.classList.add('show');
+      });
+    });
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) {
+        viewer.classList.remove('show');
       }
     });
+  }
+
+  // Bind search
+  const searchInput = document.getElementById('product-search');
+  const searchBtn = document.getElementById('search-btn');
+  if (searchInput && searchBtn) {
+    const performSearch = () => displayProducts(searchInput.value.trim());
+    searchInput.addEventListener('input', performSearch);
+    searchBtn.addEventListener('click', performSearch);
   }
 }
 
@@ -121,7 +122,7 @@ function createProductCard(p) {
   card.className = 'card product-card';
 
   card.innerHTML = `
-    <img src="${p.image}" alt="${p.name}" class="product-image" data-id="${p.id}" onerror="this.src=''; this.alt='Image not available';">
+    <img src="${p.image}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
     <div class="badges">
       ${p.category === 'new' ? `<span class="badge new">NEW</span>` : ``}
       ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ``}
@@ -136,7 +137,6 @@ function createProductCard(p) {
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
       <button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>
-      <button data-id="${p.id}" class="share-btn">Share</button>
     </div>
   `;
 
@@ -147,97 +147,7 @@ function createProductCard(p) {
     });
   }
 
-  // Share button functionality
-  card.querySelector('.share-btn').addEventListener('click', (e) => {
-    const id = e.currentTarget.getAttribute('data-id');
-    const shareUrl = `${window.location.origin}/product/${id}`;
-    copyToClipboard(shareUrl)
-      .then(() => {
-        alert('Product link copied to clipboard!');
-      })
-      .catch(err => {
-        console.error('Error copying link:', err);
-        alert('Failed to copy link. Please try again.');
-      });
-  });
-
-  // Image click to open viewer
-  card.querySelector('.product-image').addEventListener('click', () => {
-    openImageViewerModal(p.image, p.name);
-  });
-
   return card;
-}
-
-// ====== COPY TO CLIPBOARD FALLBACK ======
-function copyToClipboard(text) {
-  return new Promise((resolve, reject) => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(resolve).catch(() => {
-        // Fallback for environments where clipboard API is not available
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        try {
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-          resolve();
-        } catch (err) {
-          document.body.removeChild(textarea);
-          reject(err);
-        }
-      });
-    } else {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        resolve();
-      } catch (err) {
-        document.body.removeChild(textarea);
-        reject(err);
-      }
-    }
-  });
-}
-
-// ====== IMAGE VIEWER MODAL ======
-function openImageViewerModal(imageSrc, altText) {
-  const modal = document.getElementById('image-viewer-modal');
-  const img = document.getElementById('viewer-image');
-  img.src = imageSrc;
-  img.alt = altText;
-  modal.classList.add('show');
-}
-
-function closeImageViewerModal() {
-  const modal = document.getElementById('image-viewer-modal');
-  modal.classList.remove('show');
-}
-
-// ====== SEARCH FUNCTIONALITY ======
-function setupSearchBar() {
-  const searchInput = document.getElementById('product-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      // Clear product ID from URL if searching
-      if (window.location.pathname.startsWith('/product/')) {
-        window.history.pushState({}, '', window.location.origin);
-      }
-      displayProducts(e.target.value.trim());
-    });
-  }
 }
 
 // ====== DELIVERY CHARGE LOGIC ======
@@ -375,7 +285,6 @@ async function submitCheckoutOrder(e) {
     phone: document.getElementById('co-phone').value.trim(),
     address: document.getElementById('co-address').value.trim(),
     paymentMethod: document.getElementById('co-payment').value,
-    
     paymentNumber: document.getElementById('co-payment-number').value.trim(),
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
     status: 'Pending'
@@ -633,9 +542,7 @@ async function renderOrdersTable() {
       }
     });
     tdStatus.appendChild(select);
-    tr.appendChild(tdStatus);
-
-    tbody.appendChild(tr);
+    tr.appendChild(tr);
   });
 }
 
@@ -679,7 +586,6 @@ function setupStatusForm() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Common
   displayProducts();
-  setupSearchBar();
 
   // Admin page
   const loginPanel = document.getElementById('login-panel');

@@ -187,3 +187,67 @@ footer {
   padding: 8px 0;
   margin: 0;
 }
+
+.image-viewer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.image-viewer.show {
+  display: flex;
+}
+
+.image-viewer img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  max-width: 600px;
+  width: 100%;
+}
+
+#product-search {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  border: 2px solid #3b82f6;
+  border-radius: 25px 0 0 25px;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#product-search:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+#search-btn {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  border: 2px solid #3b82f6;
+  border-radius: 0 25px 25px 0;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+#search-btn:hover {
+  background: #2563eb;
+}
+
+#search-btn svg {
+  stroke: white;
+}
