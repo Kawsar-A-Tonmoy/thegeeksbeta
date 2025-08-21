@@ -59,7 +59,9 @@ async function displayProducts(searchTerm = '') {
 
   const products = await loadProducts();
   const filteredProducts = searchTerm
-    ? products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    ? products.filter(p => p.name.toLowerCase().includes
+
+(searchTerm.toLowerCase()))
     : products;
 
   filteredProducts.forEach(p => {
@@ -83,6 +85,11 @@ async function displayProducts(searchTerm = '') {
   const imageModal = document.getElementById('image-viewer-modal');
   if (imageModal) {
     document.getElementById('close-image-viewer-btn').onclick = closeImageViewerModal;
+    imageModal.addEventListener('click', (e) => {
+      if (e.target === imageModal) {
+        closeImageViewerModal();
+      }
+    });
   }
 }
 
@@ -127,12 +134,14 @@ function createProductCard(p) {
   card.querySelector('.share-btn').addEventListener('click', (e) => {
     const id = e.currentTarget.getAttribute('data-id');
     const shareUrl = `${window.location.origin}/product/${id}`;
-    navigator.clipboard.write(shareUrl).then(() => {
-      alert('Product link copied to clipboard!');
-    }).catch(err => {
-      console.error('Error copying link:', err);
-      alert('Failed to copy link.');
-    });
+    copyToClipboard(shareUrl)
+      .then(() => {
+        alert('Product link copied to clipboard!');
+      })
+      .catch(err => {
+        console.error('Error copying link:', err);
+        alert('Failed to copy link. Please try again.');
+      });
   });
 
   // Image click to open viewer
@@ -141,6 +150,49 @@ function createProductCard(p) {
   });
 
   return card;
+}
+
+// ====== COPY TO CLIPBOARD FALLBACK ======
+function copyToClipboard(text) {
+  return new Promise((resolve, reject) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(resolve).catch(() => {
+        // Fallback for environments where clipboard API is not available
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          resolve();
+        } catch (err) {
+          document.body.removeChild(textarea);
+          reject(err);
+        }
+      });
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        resolve();
+      } catch (err) {
+        document.body.removeChild(textarea);
+        reject(err);
+      }
+    }
+  });
 }
 
 // ====== IMAGE VIEWER MODAL ======
