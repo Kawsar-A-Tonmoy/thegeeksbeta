@@ -58,15 +58,32 @@ async function displayProducts(searchTerm = '') {
   Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
 
   const products = await loadProducts();
-  const filteredProducts = searchTerm
-    ? products.filter(p => p.name.toLowerCase().includes
+  let filteredProducts = products;
 
-(searchTerm.toLowerCase()))
-    : products;
+  // Check if URL contains a product ID (e.g., /product/:id)
+  const urlParams = new URLSearchParams(window.location.search);
+  const productId = window.location.pathname.match(/^\/product\/(.+)/)?.[1];
+
+  if (productId) {
+    // If a product ID is in the URL, show only that product
+    filteredProducts = products.filter(p => p.id === productId);
+    if (filteredProducts.length === 0) {
+      sections.all.innerHTML = '<p>Product not found.</p>';
+      return;
+    }
+    // Hide section headings for single product view
+    document.querySelectorAll('h3').forEach(h3 => h3.style.display = 'none');
+  } else if (searchTerm) {
+    // Apply search filter if no product ID and search term exists
+    filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }
 
   filteredProducts.forEach(p => {
-    if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
-    if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
+    if (!productId) {
+      // Show in respective sections if not a single product view
+      if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
+      if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
+    }
     if (sections.all) sections.all.appendChild(createProductCard(p));
   });
 
@@ -214,6 +231,10 @@ function setupSearchBar() {
   const searchInput = document.getElementById('product-search');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
+      // Clear product ID from URL if searching
+      if (window.location.pathname.startsWith('/product/')) {
+        window.history.pushState({}, '', window.location.origin);
+      }
       displayProducts(e.target.value.trim());
     });
   }
@@ -354,6 +375,7 @@ async function submitCheckoutOrder(e) {
     phone: document.getElementById('co-phone').value.trim(),
     address: document.getElementById('co-address').value.trim(),
     paymentMethod: document.getElementById('co-payment').value,
+    
     paymentNumber: document.getElementById('co-payment-number').value.trim(),
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
     status: 'Pending'
@@ -574,7 +596,7 @@ async function renderOrdersTable() {
       o.color,
       '৳' + Number(o.unitPrice).toFixed(2),
       o.quantity,
-      '৳' + Number(o.description).toFixed(2),
+      '৳' + Number(o.deliveryFee).toFixed(2),
       '৳' + Number(o.total).toFixed(2),
       o.customerName,
       o.phone,
