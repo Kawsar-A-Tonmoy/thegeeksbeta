@@ -3,21 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Products</title>
+  <title>The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-  </script>
   <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
-     <nav>
-      <a href="index.html" class="logo">
-        <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
-      </a>
+    <nav>
+      <div class="logo"><img src="logo.png" alt="Logo" width="80"></div>
       <div class="nav-links">
         <a href="index.html">Products</a>
         <a href="status.html">Order Status</a>
@@ -26,25 +19,30 @@
     </nav>
   </header>
 
-  <div class="container">
+  <main class="container">
     <h1>Products</h1>
     <h2>New Added</h2>
     <div id="new-products" class="product-list new-hot-list"></div>
+    
     <h2>Hot Deals</h2>
     <div id="hot-deals" class="product-list new-hot-list"></div>
+    
     <h2>All Products</h2>
     <div id="all-products" class="product-list"></div>
+  </main>
+
+  <div id="image-viewer" class="image-viewer">
+    <img src="" alt="Zoomed image">
   </div>
-    <div id="image-viewer" class="image-viewer">
-      <img id="viewer-image" src="" alt="Product Image">
-    </div>
+
   <div id="checkout-modal" class="modal">
-    <div class="modal-content card">
+    <div class="card modal-content">
       <div class="modal-header">
         <h2>Checkout</h2>
-        <button id="close-modal-btn" class="secondary">Close</button>
+        <button id="close-modal-btn">Close</button>
       </div>
       <form id="checkout-form" class="form">
+        <input id="co-product-id" type="hidden">
         <div class="row">
           <div>
             <label>Product Name</label>
@@ -59,13 +57,12 @@
           <div>
             <label>Price (tk)</label>
             <input id="co-price" readonly>
-            <input id="co-product-id" type="hidden">
             <input id="co-unit-price-raw" type="hidden">
             <input id="co-available-stock" type="hidden">
           </div>
           <div>
             <label>Quantity</label>
-            <input id="co-qty" type="number" min="1" required>
+            <input id="co-qty" type="number" min="1" value="1">
           </div>
         </div>
         <div class="row">
@@ -96,47 +93,28 @@
           <div>
             <label>Payment Method</label>
             <select id="co-payment" required>
-              <option value="">Select</option>
+              <option value="" disabled selected>Select</option>
               <option value="Cash on Delivery">Cash on Delivery</option>
               <option value="Bkash">Bkash</option>
             </select>
           </div>
           <div>
             <label>Pay to (Send money)</label>
-            <input id="co-payment-number" value="This text is read-only" readonly >
+            <input id="co-payment-number" readonly>
           </div>
         </div>
         <div>
           <label>Transaction ID</label>
           <input id="co-txn">
         </div>
-        <p id="co-note" class="muted"></p>
-        <button id="place-order-btn" type="submit">Place Order</button>
+        <div id="co-note" class="muted"></div>
+        <button id="place-order-btn">Place Order</button>
       </form>
     </div>
   </div>
-<footer style="background-color: #e8e8ff; padding: 20px; text-align: center; height: 90px; color:  #000000; font-family: Arial, sans-serif;">
-  <div>
-    <a href="https://www.facebook.com/thegeek.shop0" target="_blank" style="margin: 0 10px;">
-      <img src="facebook.png" alt="Facebook" style="width: 30px; height: 30px;">
-    </a>
-    <a href="https://www.instagram.com/thegeekshop.0" target="_blank" style="margin: 0 10px;">
-      <img src="instagram.png" alt="Instagram" style="width: 30px; height: 30px;">
-    </a>
-        <a href="wa.me/01960788862" target="_blank" style="margin: 0 10px;">
-      <img src="whatsapp.png" alt="Instagram" style="width: 30px; height: 30px;">
-    </a>
-  </div><div id="image-popup" class="image-popup">
-  <img src="" alt="Zoomed Product">
-</div>
 
- 
-  <p>&copy; All rights reserved by The Geek Shop</p>
-</footer>
+  <footer>
+    <p>© All rights reserved by The Geek Shop</p>
+  </footer>
 </body>
 </html>
-
-
-
-
-
