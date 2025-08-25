@@ -644,30 +644,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     }
-  }
+  }// Popup Zoom Logic
+const imagePopup = document.getElementById('image-popup');
+const popupImg = imagePopup.querySelector('img');
 
-// Image Viewer Modal Logic
-const imageViewerModal = document.getElementById('image-viewer-modal');
-const viewerImage = document.getElementById('viewer-image');
-const closeImageViewerBtn = document.getElementById('close-image-viewer-btn');
-
-// Delegate click event for product images
 document.addEventListener('click', (e) => {
   if (e.target.tagName === 'IMG' && e.target.closest('.product-card')) {
-    viewerImage.src = e.target.src;
-    imageViewerModal.classList.add('active');
-  }
-});
+    const rect = e.target.getBoundingClientRect();
+    popupImg.src = e.target.src;
 
-// Close when clicking the close button
-closeImageViewerBtn.addEventListener('click', () => {
-  imageViewerModal.classList.remove('active');
-});
+    // Position popup near the clicked image
+    imagePopup.style.top = (window.scrollY + rect.top - 20) + "px";
+    imagePopup.style.left = (rect.right + 20) + "px";
 
-// Close when clicking outside the image
-imageViewerModal.addEventListener('click', (e) => {
-  if (e.target === imageViewerModal) {
-    imageViewerModal.classList.remove('active');
+    imagePopup.style.display = 'block';
+  } else if (!e.target.closest('#image-popup')) {
+    // Click outside closes popup
+    imagePopup.style.display = 'none';
   }
 });
 
