@@ -613,4 +613,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Status page
   setupStatusForm();
+
 });
