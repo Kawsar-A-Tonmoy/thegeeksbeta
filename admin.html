@@ -3,48 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin</title>
+  <title>Admin | The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-  </script>
-  <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
     <nav>
-      <a href="index.html">Products</a>
-      <a href="status.html">Order Status</a>
-      <a href="admin.html">Admin</a>
+      <div class="logo"><img src="logo.png" alt="The Geek Shop" height="40"></div>
+      <div class="nav-links">
+        <a href="index.html">Products</a>
+        <a href="status.html">Order Status</a>
+        <a href="admin.html">Admin</a>
+      </div>
     </nav>
   </header>
 
   <div class="container">
     <div id="login-panel">
       <h1>Admin Login</h1>
-      <form id="login-form" class="form">
-        <div>
-          <label>Email</label>
-          <input id="admin-email" type="email" required>
+      <form class="form" id="login-form">
+        <div class="row">
+          <div>
+            <label>Email</label>
+            <input type="email" id="admin-email" required>
+          </div>
+          <div>
+            <label>Password</label>
+            <input type="password" id="admin-pass" required>
+          </div>
         </div>
-        <div>
-          <label>Password</label>
-          <input id="admin-pass" type="password" required>
-        </div>
-        <button type="submit">Login</button>
+        <button>Login</button>
       </form>
     </div>
 
     <div id="admin-panel" style="display: none;">
       <div class="panel-header">
         <h1>Admin Panel</h1>
-        <button onclick="logoutAdmin()">Logout</button>
+        <button class="secondary" onclick="logoutAdmin()">Logout</button>
       </div>
 
       <h2>Add Product</h2>
-      <form id="add-product-form" class="form">
+      <form class="form card" id="add-product-form">
         <div class="row">
           <div>
             <label>Name</label>
@@ -61,8 +60,18 @@
             <input id="add-discount">
           </div>
           <div>
-            <label>Image URL</label>
-            <input id="add-image" required>
+            <label>Featured Image URL</label>
+            <input id="add-featured-image" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Additional Image 1 URL</label>
+            <input id="add-image2">
+          </div>
+          <div>
+            <label>Additional Image 2 URL</label>
+            <input id="add-image3">
           </div>
         </div>
         <div class="row">
@@ -82,14 +91,14 @@
         <div class="row">
           <div>
             <label>Stock</label>
-            <input id="add-stock" type="number" min="0">
+            <input id="add-stock" type="number">
           </div>
         </div>
         <div>
           <label>Description</label>
           <textarea id="add-desc"></textarea>
         </div>
-        <button type="submit">Add Product</button>
+        <button>Add Product</button>
       </form>
 
       <h2>Products</h2>
@@ -99,7 +108,8 @@
             <tr>
               <th>Name</th>
               <th>Price</th>
-              <th>Image URL</th>
+              <th>Featured Image</th>
+              <th>Images</th>
               <th>Category</th>
               <th>Color</th>
               <th>Discount (tk)</th>
@@ -111,6 +121,10 @@
           </thead>
           <tbody id="products-body"></tbody>
         </table>
+      </div>
+      <div class="pagination">
+        <button id="prev-products" disabled>Previous</button>
+        <button id="next-products">Next</button>
       </div>
 
       <h2>Orders</h2>
@@ -137,7 +151,12 @@
           <tbody id="orders-body"></tbody>
         </table>
       </div>
+      <div class="pagination">
+        <button id="prev-orders" disabled>Previous</button>
+        <button id="next-orders">Next</button>
+      </div>
     </div>
   </div>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

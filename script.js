@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction, limit, startAfter, endBefore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 // Initialize Firebase
@@ -28,7 +28,7 @@ const statusColors = {
 // ====== UTIL ======
 async function loadProducts() {
   try {
-    const snapshot = await getDocs(collection(db, 'products'));
+    const snapshot = await getDocs(query(collection(db, 'products'), orderBy('name')));
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err) {
     console.error('Error loading products:', err);
@@ -48,13 +48,53 @@ async function loadOrders() {
 }
 
 // ====== PRODUCT PAGE ======
-async function displayProducts() {
+async function initProducts() {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get('product');
+  const sectionsContainer = document.querySelector('.product-sections');
+  const detailContainer = document.getElementById('product-detail');
+
+  if (slug) {
+    const q = query(collection(db, 'products'), where('slug', '==', slug));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const p = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      renderProductDetail(p);
+      if (sectionsContainer) sectionsContainer.style.display = 'none';
+      detailContainer.style.display = 'block';
+
+      // Add canonical tag
+      const link = document.createElement('link');
+      link.rel = 'canonical';
+      link.href = `${location.origin}/product/${slug}`;
+      document.head.appendChild(link);
+
+      // Update title
+      document.title = `${p.name} | The Geek Shop`;
+    } else {
+      showProductList();
+    }
+  } else {
+    showProductList();
+  }
+}
+
+function showProductList() {
+  const sectionsContainer = document.querySelector('.product-sections');
+  const detailContainer = document.getElementById('product-detail');
+  if (sectionsContainer) sectionsContainer.style.display = 'block';
+  detailContainer.style.display = 'none';
+  document.title = 'Products | The Geek Shop';
+  loadAndDisplayProductList();
+}
+
+async function loadAndDisplayProductList() {
   const sections = {
     new: document.getElementById('new-products'),
     hot: document.getElementById('hot-deals'),
     all: document.getElementById('all-products'),
   };
-  if (!sections.all) return; // Not on product page
+  if (!sections.all) return;
   Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
 
   const products = await loadProducts();
@@ -63,17 +103,49 @@ async function displayProducts() {
     if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
     if (sections.all) sections.all.appendChild(createProductCard(p));
   });
+}
 
-  // Bind modal if on product page
-  const modal = document.getElementById('checkout-modal');
-  if (modal) {
-    document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
-    const form = document.getElementById('checkout-form');
-    form.addEventListener('submit', submitCheckoutOrder);
-    document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
-    document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
-    document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
-  }
+function renderProductDetail(p) {
+  const isUpcoming = p.price === 'TBA';
+  const isOOS = !isUpcoming && Number(p.stock) <= 0;
+  const hasDiscount = Number(p.discount) > 0;
+  const price = Number(p.price) || 0;
+  const finalPrice = hasDiscount ? (price - Number(p.discount)) : price;
+
+  document.getElementById('detail-name').textContent = p.name;
+  document.getElementById('detail-color').textContent = p.color || '-';
+  document.getElementById('detail-desc').textContent = p.description || '';
+  document.getElementById('detail-price').innerHTML = isUpcoming ? 'TBA' : (hasDiscount ? `<s>৳${price.toFixed(2)}</s> ` : '') + `৳${finalPrice.toFixed(2)}`;
+
+  const badges = document.getElementById('detail-badges');
+  badges.innerHTML = '';
+  if (p.category === 'new') badges.innerHTML += `<span class="badge new">NEW</span>`;
+  if (p.category === 'hot') badges.innerHTML += `<span class="badge hot">HOT</span>`;
+  if (isOOS) badges.innerHTML += `<span class="badge oos">OUT OF STOCK</span>`;
+  if (isUpcoming) badges.innerHTML += `<span class="badge upcoming">UPCOMING</span>`;
+
+  const mainImage = document.getElementById('main-image');
+  mainImage.src = p.featuredImage || '';
+  mainImage.alt = p.name;
+
+  const thumbnails = document.querySelector('.thumbnails');
+  thumbnails.innerHTML = '';
+  (p.images || []).forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = p.name;
+    img.onclick = () => { mainImage.src = url; };
+    thumbnails.appendChild(img);
+  });
+
+  const orderBtn = document.getElementById('detail-order-btn');
+  orderBtn.disabled = isOOS || isUpcoming;
+  orderBtn.onclick = () => openCheckoutModal(p.id);
+
+  document.getElementById('back-to-list').onclick = () => {
+    history.pushState({}, '', 'index.html');
+    showProductList();
+  };
 }
 
 function createProductCard(p) {
@@ -85,9 +157,8 @@ function createProductCard(p) {
 
   const card = document.createElement('div');
   card.className = 'card product-card';
-
   card.innerHTML = `
-    <img src="${p.image}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
+    <img src="${p.featuredImage || ''}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
     <div class="badges">
       ${p.category === 'new' ? `<span class="badge new">NEW</span>` : ``}
       ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ``}
@@ -101,15 +172,20 @@ function createProductCard(p) {
     </div>
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
-      <button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>
+      <button class="view-details-btn">View Details</button>
+      <button ${isOOS || isUpcoming ? 'disabled' : ''} class="order-btn">Order</button>
     </div>
   `;
 
+  card.querySelector('.view-details-btn').addEventListener('click', () => {
+    history.pushState({ product: p.slug }, '', `?product=${p.slug}`);
+    renderProductDetail(p);
+    document.querySelector('.product-sections').style.display = 'none';
+    document.getElementById('product-detail').style.display = 'block';
+  });
+
   if (!isOOS && !isUpcoming) {
-    card.querySelector('.order-btn').addEventListener('click', (e) => {
-      const id = e.currentTarget.getAttribute('data-id');
-      openCheckoutModal(id);
-    });
+    card.querySelector('.order-btn').addEventListener('click', () => openCheckoutModal(p.id));
   }
 
   return card;
@@ -255,7 +331,7 @@ async function submitCheckoutOrder(e) {
     status: 'Pending'
   };
 
-  console.log('Order Data:', orderData); // Debug log
+  console.log('Order Data:', orderData);
 
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
     alert('Please fill all required fields.');
@@ -263,40 +339,25 @@ async function submitCheckoutOrder(e) {
     return;
   }
 
-  if (orderData.paymentMethod === 'Bkash' && (!orderData.paymentNumber || !orderData.transactionId)) {
-    alert('Please provide payment number and transaction ID for Bkash.');
-    btn.disabled = false;
-    return;
-  }
-
   try {
+    const productRef = doc(db, 'products', orderData.productId);
     await runTransaction(db, async (transaction) => {
-      const productRef = doc(db, 'products', productId);
       const productSnap = await transaction.get(productRef);
+      if (!productSnap.exists()) throw new Error('Product not found');
+      const newStock = productSnap.data().stock - orderData.quantity;
+      if (newStock < 0) throw new Error('Insufficient stock');
 
-      if (!productSnap.exists()) {
-        throw new Error('Product not found.');
-      }
+      console.log('New Stock:', newStock);
 
-      const currentStock = Number(productSnap.data().stock);
-      if (currentStock < qty) {
-        throw new Error(`Insufficient stock. Only ${currentStock} available.`);
-      }
-
-      const newStock = currentStock - qty;
-      console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
-
-      // Update stock
       transaction.update(productRef, { stock: Number(newStock) });
 
-      // Create order
       const orderRef = doc(collection(db, 'orders'));
       transaction.set(orderRef, orderData);
     });
 
     alert('Order placed successfully! Txn ID: ' + orderData.transactionId);
     closeCheckoutModal();
-    displayProducts();
+    initProducts();
   } catch (err) {
     console.error('Error placing order:', err);
     alert('Error placing order: ' + err.message);
@@ -312,6 +373,7 @@ async function addProduct(e) {
   const stockStr = form['add-stock'].value.trim() || '0';
   const discountStr = form['add-discount'].value.trim() || '0';
   const priceStr = form['add-price'].value.trim();
+  const name = form['add-name'].value.trim();
 
   if (isNaN(Number(stockStr))) {
     alert('Stock must be a number.');
@@ -322,18 +384,37 @@ async function addProduct(e) {
     return;
   }
 
+  const featuredImage = form['add-featured-image'].value.trim();
+  const image2 = form['add-image2'].value.trim();
+  const image3 = form['add-image3'].value.trim();
+  const images = [featuredImage];
+  if (image2) images.push(image2);
+  if (image3) images.push(image3);
+
+  let baseSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  let slug = baseSlug;
+  let count = 1;
+  while (true) {
+    const q = query(collection(db, 'products'), where('slug', '==', slug));
+    const snap = await getDocs(q);
+    if (snap.empty) break;
+    slug = `${baseSlug}-${++count}`;
+  }
+
   const data = {
-    name: form['add-name'].value.trim(),
+    name,
     price: priceStr === 'TBA' ? 'TBA' : Number(priceStr),
     discount: Number(discountStr),
-    image: form['add-image'].value.trim(),
+    featuredImage,
+    images,
     category: form['add-category'].value,
     color: form['add-color'].value.trim(),
     stock: Number(stockStr),
-    description: form['add-desc'].value.trim()
+    description: form['add-desc'].value.trim(),
+    slug
   };
 
-  if (!data.name || (typeof data.price === 'undefined' || data.price === null) || !data.image || !data.category) {
+  if (!data.name || (typeof data.price === 'undefined' || data.price === null) || !data.featuredImage || !data.category) {
     alert('Please fill required fields.');
     return;
   }
@@ -346,7 +427,7 @@ async function addProduct(e) {
   try {
     await addDoc(collection(db, 'products'), data);
     form.reset();
-    renderDataTable();
+    renderDataTable('init');
     alert('Product added successfully!');
   } catch (err) {
     console.error('Error adding product:', err);
@@ -355,17 +436,50 @@ async function addProduct(e) {
 }
 
 // ====== ADMIN: PRODUCTS TABLE ======
-async function renderDataTable() {
+let productsFirstDoc = null;
+let productsLastDoc = null;
+let productsHasPrev = false;
+let productsHasNext = false;
+
+async function renderDataTable(direction = 'init') {
   const tbody = document.getElementById('products-body');
   if (!tbody) return;
 
-  const products = await loadProducts();
+  const pageSize = 20;
+  let q = query(collection(db, 'products'), orderBy('name'), limit(pageSize));
+
+  if (direction === 'next' && productsLastDoc) {
+    q = query(collection(db, 'products'), orderBy('name'), startAfter(productsLastDoc), limit(pageSize));
+  } else if (direction === 'prev' && productsFirstDoc) {
+    q = query(collection(db, 'products'), orderBy('name'), endBefore(productsFirstDoc), limit(pageSize));
+  }
+
+  const snap = await getDocs(q);
+  const docs = snap.docs;
+
+  if (docs.length === 0) return;
+
+  productsFirstDoc = docs[0];
+  productsLastDoc = docs[docs.length - 1];
+  productsHasNext = docs.length === pageSize;
+  if (direction === 'init') {
+    productsHasPrev = false;
+  } else if (direction === 'next') {
+    productsHasPrev = true;
+  } else if (direction === 'prev') {
+    productsHasPrev = docs.length === pageSize;
+  }
+
+  document.getElementById('prev-products').disabled = !productsHasPrev;
+  document.getElementById('next-products').disabled = !productsHasNext;
+
   tbody.innerHTML = '';
 
   const cols = [
     { key: 'name', editable: true },
     { key: 'price', editable: true },
-    { key: 'image', editable: true },
+    { key: 'featuredImage', editable: true },
+    { key: 'images', editable: true },
     { key: 'category', editable: true },
     { key: 'color', editable: true },
     { key: 'discount', editable: true },
@@ -373,16 +487,21 @@ async function renderDataTable() {
     { key: 'description', editable: true }
   ];
 
+  const products = docs.map(d => ({ id: d.id, ...d.data() }));
   products.forEach(p => {
     const tr = document.createElement('tr');
 
     cols.forEach(col => {
       const td = document.createElement('td');
       td.contentEditable = col.editable;
-      td.textContent = p[col.key] != null ? p[col.key] : '';
+      if (col.key === 'images') {
+        td.textContent = p.images ? p.images.join(', ') : '';
+      } else {
+        td.textContent = p[col.key] != null ? p[col.key] : '';
+      }
       td.addEventListener('blur', async (e) => {
         let val = e.target.textContent.trim();
-        if (val === (p[col.key] != null ? String(p[col.key]) : '')) return;
+        if (val === (col.key === 'images' ? (p.images ? p.images.join(', ') : '') : (p[col.key] != null ? String(p[col.key]) : ''))) return;
 
         let updateValue = val;
         if (col.key === 'price') {
@@ -399,15 +518,16 @@ async function renderDataTable() {
             return;
           }
           updateValue = Number(val);
+        } else if (col.key === 'images') {
+          updateValue = val.split(',').map(s => s.trim()).filter(Boolean);
         }
 
         await updateProductField(p.id, col.key, updateValue);
         if (col.key === 'stock' || col.key === 'price') {
-          const cur = (await loadProducts()).find(x => x.id === p.id);
+          const cur = (await getDoc(doc(db, 'products', p.id))).data();
           tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
         }
       });
-
       tr.appendChild(td);
     });
 
@@ -447,7 +567,7 @@ async function updateProductField(id, field, value) {
 async function deleteProductById(id) {
   try {
     await deleteDoc(doc(db, 'products', id));
-    renderDataTable();
+    renderDataTable('init');
   } catch (err) {
     console.error('Error deleting product:', err);
     alert('Error deleting product: ' + err.message);
@@ -455,13 +575,46 @@ async function deleteProductById(id) {
 }
 
 // ====== ADMIN: ORDERS TABLE ======
-async function renderOrdersTable() {
+let ordersFirstDoc = null;
+let ordersLastDoc = null;
+let ordersHasPrev = false;
+let ordersHasNext = false;
+
+async function renderOrdersTable(direction = 'init') {
   const tbody = document.getElementById('orders-body');
   if (!tbody) return;
 
-  const orders = await loadOrders();
+  const pageSize = 20;
+  let q = query(collection(db, 'orders'), orderBy('timeISO', 'desc'), limit(pageSize));
+
+  if (direction === 'next' && ordersLastDoc) {
+    q = query(collection(db, 'orders'), orderBy('timeISO', 'desc'), startAfter(ordersLastDoc), limit(pageSize));
+  } else if (direction === 'prev' && ordersFirstDoc) {
+    q = query(collection(db, 'orders'), orderBy('timeISO', 'desc'), endBefore(ordersFirstDoc), limit(pageSize));
+  }
+
+  const snap = await getDocs(q);
+  const docs = snap.docs;
+
+  if (docs.length === 0) return;
+
+  ordersFirstDoc = docs[0];
+  ordersLastDoc = docs[docs.length - 1];
+  ordersHasNext = docs.length === pageSize;
+  if (direction === 'init') {
+    ordersHasPrev = false;
+  } else if (direction === 'next') {
+    ordersHasPrev = true;
+  } else if (direction === 'prev') {
+    ordersHasPrev = docs.length === pageSize;
+  }
+
+  document.getElementById('prev-orders').disabled = !ordersHasPrev;
+  document.getElementById('next-orders').disabled = !ordersHasNext;
+
   tbody.innerHTML = '';
 
+  const orders = docs.map(d => ({ id: d.id, ...d.data() }));
   orders.forEach(o => {
     const tr = document.createElement('tr');
     const tds = [
@@ -485,7 +638,6 @@ async function renderOrdersTable() {
       tr.appendChild(td);
     });
 
-    // Status dropdown
     const tdStatus = document.createElement('td');
     const select = document.createElement('select');
     ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(opt => {
@@ -551,10 +703,9 @@ function setupStatusForm() {
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // Common
-  displayProducts();
+  initProducts();
+  window.addEventListener('popstate', initProducts);
 
-  // Admin page
   const loginPanel = document.getElementById('login-panel');
   const adminPanel = document.getElementById('admin-panel');
   const addForm = document.getElementById('add-product-form');
@@ -566,8 +717,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('User logged in:', user.email);
         loginPanel.style.display = 'none';
         adminPanel.style.display = 'block';
-        await renderDataTable();
-        await renderOrdersTable();
+        await renderDataTable('init');
+        await renderOrdersTable('init');
+        document.getElementById('prev-products').addEventListener('click', () => renderDataTable('prev'));
+        document.getElementById('next-products').addEventListener('click', () => renderDataTable('next'));
+        document.getElementById('prev-orders').addEventListener('click', () => renderOrdersTable('prev'));
+        document.getElementById('next-orders').addEventListener('click', () => renderOrdersTable('next'));
       } else {
         console.log('No user logged in');
         loginPanel.style.display = 'block';
@@ -593,24 +748,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Bind image zoom functionality
-  const imageViewer = document.getElementById('image-viewer');
-  if (imageViewer) {
-    const zoomImage = imageViewer.querySelector('.image-viewer-content img');
-    document.querySelectorAll('.product-card img').forEach(img => {
-      img.style.cursor = 'zoom-in';
-      img.addEventListener('click', () => {
-        zoomImage.src = img.src;
-        zoomImage.alt = img.alt;
-        imageViewer.classList.add('show');
-      });
-    });
-    imageViewer.addEventListener('click', (e) => {
-      if (e.target === imageViewer) {
-        imageViewer.classList.remove('show');
-      }
-    });
+  const modal = document.getElementById('checkout-modal');
+  if (modal) {
+    document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
+    const form = document.getElementById('checkout-form');
+    form.addEventListener('submit', submitCheckoutOrder);
+    document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
+    document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
+    document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
   }
-  // Status page
+
   setupStatusForm();
 });
