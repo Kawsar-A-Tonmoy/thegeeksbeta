@@ -5,36 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin</title>
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Ensure Orders table shows all columns without horizontal scroll */
-    .table-wrapper {
-      overflow-x: auto;
-    }
-    .orders-table-wrapper {
-      overflow-x: visible !important;
-    }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .data-table th, .data-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    .details-row {
-      display: none;
-      background-color: #f9f9f9;
-    }
-    .details-row td {
-      padding: 15px;
-    }
-    .expand-button {
-      cursor: pointer;
-      color: blue;
-      text-decoration: underline;
-    }
-  </style>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
@@ -44,7 +14,7 @@
 </head>
 <body>
   <header class="site-header">
-    <nav>
+     <nav>
       <a href="index.html" class="logo">
         <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
       </a>
@@ -128,7 +98,7 @@
       </form>
 
       <h2>Products</h2>
-      <div class="table-wrapper">
+      <div class="table-wrapper products-table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -139,24 +109,7 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="products-body">
-            <!-- Example row (to be populated dynamically) -->
-            <!--
-            <tr onclick="toggleDetails(this)">
-              <td class="expand-button">Product Name</td>
-              <td>Red</td>
-              <td>1000</td>
-              <td>50</td>
-              <td><button onclick="deleteProduct('product_id')">Delete</button></td>
-            </tr>
-            <tr class="details-row">
-              <td colspan="5">
-                <img src="image_url" alt="Product Image" style="max-width: 200px;">
-                <p>Description: This is the product description.</p>
-              </td>
-            </tr>
-            -->
-          </tbody>
+          <tbody id="products-body"></tbody>
         </table>
       </div>
 
@@ -187,41 +140,5 @@
     </div>
   </div>
 
-  <script>
-    function toggleDetails(row) {
-      const detailsRow = row.nextElementSibling;
-      if (detailsRow && detailsRow.classList.contains('details-row')) {
-        detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
-      }
-    }
-
-    // Example function to populate products table (adjust as per your Firebase logic)
-    /*
-    function populateProducts(products) {
-      const tbody = document.getElementById('products-body');
-      tbody.innerHTML = '';
-      products.forEach(product => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="expand-button" onclick="toggleDetails(this.parentElement)">${product.name}</td>
-          <td>${product.color || ''}</td>
-          <td>${product.price}</td>
-          <td>${product.stock}</td>
-          <td><button onclick="deleteProduct('${product.id}')">Delete</button></td>
-        `;
-        const detailsRow = document.createElement('tr');
-        detailsRow.classList.add('details-row');
-        detailsRow.innerHTML = `
-          <td colspan="5">
-            <img src="${product.image}" alt="${product.name}" style="max-width: 200px;">
-            <p>Description: ${product.description || 'No description'}</p>
-          </td>
-        `;
-        tbody.appendChild(row);
-        tbody.appendChild(detailsRow);
-      });
-    }
-    */
-  </script>
 </body>
 </html>

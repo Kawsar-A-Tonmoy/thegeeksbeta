@@ -105,11 +105,23 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .order-row .qty { width: 80px; padding: 8px; border: 1px solid #e5e7eb; border-radius: 8px; }
 
 .table-wrapper { overflow: auto; }
+.orders-table-wrapper { overflow-x: visible; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .data-table thead th { position: sticky; top: 0; background: #f3f4f6; text-align: left; padding: 10px; border-bottom: 1px solid #e5e7eb; }
 .data-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
 .data-table td[contenteditable="true"] { background: #fff; outline: none; }
 .data-table tr:hover td[contenteditable="true"] { background: #fbfbfb; }
+.details-row { background: #f9f9f9; }
+.details-row label { font-weight: bold; margin-right: 5px; }
+.details-row span[contenteditable="true"], .details-row div[contenteditable="true"] { 
+  background: #fff; 
+  padding: 5px; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 4px; 
+  display: inline-block; 
+  min-width: 200px; 
+}
+.details-row div[contenteditable="true"] { min-height: 50px; min-width: 300px; }
 
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; }
 
