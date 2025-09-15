@@ -362,44 +362,73 @@ async function renderDataTable() {
   const products = await loadProducts();
   tbody.innerHTML = '';
 
-  const initialCols = [
+  const cols = [
     { key: 'name', editable: true },
-    { key: 'color', editable: true },
     { key: 'price', editable: true },
+    { key: 'category', editable: true },
+    { key: 'color', editable: true },
+    { key: 'discount', editable: true },
     { key: 'stock', editable: true }
   ];
 
-  const detailFields = [
-    { key: 'image', editable: true },
-    { key: 'description', editable: true },
-    { key: 'category', editable: true },
-    { key: 'discount', editable: true }
-  ];
-
   products.forEach(p => {
+    // Main row
     const tr = document.createElement('tr');
 
-    initialCols.forEach(col => {
+    // Toggle button cell
+    const tdToggle = document.createElement('td');
+    tdToggle.className = 'toggle-details';
+    tdToggle.innerHTML = '▼';
+    tdToggle.addEventListener('click', (e) => {
+      const detailsRow = e.target.closest('tr').nextElementSibling;
+      const isVisible = detailsRow.classList.contains('show');
+      detailsRow.classList.toggle('show', !isVisible);
+      e.target.textContent = isVisible ? '▼' : '▲';
+    });
+    tr.appendChild(tdToggle);
+
+    // Main columns
+    cols.forEach(col => {
       const td = document.createElement('td');
       td.contentEditable = col.editable;
       td.textContent = p[col.key] != null ? p[col.key] : '';
       td.addEventListener('blur', async (e) => {
-        const newVal = await handleFieldUpdate(e, p, col.key);
-        if (newVal !== undefined) {
-          // If price or stock updated, update status in details if open
-          const detailsRow = tr.nextElementSibling;
-          if (detailsRow && detailsRow.style.display === 'table-row') {
-            const statusSpan = detailsRow.querySelector('.status-span');
-            if (statusSpan) {
-              statusSpan.textContent = computeStatus({ ...p, [col.key]: newVal });
-            }
+        let val = e.target.textContent.trim();
+        if (val === (p[col.key] != null ? String(p[col.key]) : '')) return;
+
+        let updateValue = val;
+        if (col.key === 'price') {
+          if (val !== 'TBA' && isNaN(Number(val))) {
+            alert('Price must be a number or "TBA".');
+            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
+            return;
           }
+          updateValue = val === 'TBA' ? 'TBA' : Number(val);
+        } else if (col.key === 'discount' || col.key === 'stock') {
+          if (isNaN(Number(val))) {
+            alert(`${col.key.charAt(0).toUpperCase() + col.key.slice(1)} must be a number.`);
+            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
+            return;
+          }
+          updateValue = Number(val);
+        }
+
+        await updateProductField(p.id, col.key, updateValue);
+        if (col.key === 'stock' || col.key === 'price') {
+          const cur = (await loadProducts()).find(x => x.id === p.id);
+          tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
         }
       });
       tr.appendChild(td);
     });
 
-    // Actions td
+    // Status column
+    const tdStatus = document.createElement('td');
+    tdStatus.dataset.status = '1';
+    tdStatus.textContent = computeStatus(p);
+    tr.appendChild(tdStatus);
+
+    // Actions column
     const tdActions = document.createElement('td');
     const del = document.createElement('button');
     del.className = 'danger';
@@ -410,136 +439,40 @@ async function renderDataTable() {
     tdActions.appendChild(del);
     tr.appendChild(tdActions);
 
-    // Make the row clickable for expand (but not on actions or when editing)
-    tr.addEventListener('click', (e) => {
-      if (!e.target.contentEditable && e.target.tagName !== 'BUTTON') {
-        toggleDetails(tr);
-      }
-    });
-    tr.style.cursor = 'pointer';
-
-    // Details row
-    const detailsTr = document.createElement('tr');
-    detailsTr.classList.add('details-row');
-    detailsTr.style.display = 'none';
-    const detailsTd = document.createElement('td');
-    detailsTd.colSpan = initialCols.length + 1; // name, color, price, stock, actions
-    const detailsDiv = document.createElement('div');
-    detailsDiv.style.padding = '10px';
-    detailsDiv.style.display = 'grid';
-    detailsDiv.style.gap = '10px';
-
-    // Image
-    const imageDiv = document.createElement('div');
-    const img = document.createElement('img');
-    img.src = p.image || '';
-    img.style.maxWidth = '200px';
-    img.alt = 'Product Image';
-    imageDiv.appendChild(img);
-    const imageLabel = document.createElement('label');
-    imageLabel.textContent = 'Image URL: ';
-    const imageSpan = document.createElement('span');
-    imageSpan.contentEditable = true;
-    imageSpan.textContent = p.image || '';
-    imageSpan.addEventListener('blur', async (e) => {
-      const newVal = await handleFieldUpdate(e, p, 'image');
-      if (newVal !== undefined) {
-        img.src = newVal;
-      }
-    });
-    imageDiv.appendChild(imageLabel);
-    imageDiv.appendChild(imageSpan);
-    detailsDiv.appendChild(imageDiv);
-
-    // Description
-    const descDiv = document.createElement('div');
-    const descLabel = document.createElement('label');
-    descLabel.textContent = 'Description: ';
-    const descSpan = document.createElement('div');
-    descSpan.contentEditable = true;
-    descSpan.textContent = p.description || '';
-    descSpan.addEventListener('blur', (e) => handleFieldUpdate(e, p, 'description'));
-    descDiv.appendChild(descLabel);
-    descDiv.appendChild(descSpan);
-    detailsDiv.appendChild(descDiv);
-
-    // Category
-    const catDiv = document.createElement('div');
-    const catLabel = document.createElement('label');
-    catLabel.textContent = 'Category: ';
-    const catSpan = document.createElement('span');
-    catSpan.contentEditable = true;
-    catSpan.textContent = p.category || '';
-    catSpan.addEventListener('blur', (e) => handleFieldUpdate(e, p, 'category'));
-    catDiv.appendChild(catLabel);
-    catDiv.appendChild(catSpan);
-    detailsDiv.appendChild(catDiv);
-
-    // Discount
-    const discDiv = document.createElement('div');
-    const discLabel = document.createElement('label');
-    discLabel.textContent = 'Discount: ';
-    const discSpan = document.createElement('span');
-    discSpan.contentEditable = true;
-    discSpan.textContent = p.discount != null ? p.discount : '0';
-    discSpan.addEventListener('blur', (e) => handleFieldUpdate(e, p, 'discount'));
-    discDiv.appendChild(discLabel);
-    discDiv.appendChild(discSpan);
-    detailsDiv.appendChild(discDiv);
-
-    // Status (non-editable)
-    const statusDiv = document.createElement('div');
-    const statusLabel = document.createElement('label');
-    statusLabel.textContent = 'Status: ';
-    const statusSpan = document.createElement('span');
-    statusSpan.classList.add('status-span');
-    statusSpan.textContent = computeStatus(p);
-    statusDiv.appendChild(statusLabel);
-    statusDiv.appendChild(statusSpan);
-    detailsDiv.appendChild(statusDiv);
-
-    detailsTd.appendChild(detailsDiv);
-    detailsTr.appendChild(detailsTd);
-
     tbody.appendChild(tr);
-    tbody.appendChild(detailsTr);
+
+    // Details row for Image URL and Description
+    const detailsRow = document.createElement('tr');
+    detailsRow.className = 'details-row';
+    const detailsCell = document.createElement('td');
+    detailsCell.colSpan = cols.length + 3; // Span across toggle, cols, status, and actions
+    detailsCell.className = 'details-content';
+
+    const imageCell = document.createElement('div');
+    imageCell.contentEditable = true;
+    imageCell.textContent = p.image != null ? p.image : '';
+    imageCell.addEventListener('blur', async (e) => {
+      const val = e.target.textContent.trim();
+      if (val === (p.image != null ? String(p.image) : '')) return;
+      await updateProductField(p.id, 'image', val);
+    });
+
+    const descCell = document.createElement('div');
+    descCell.contentEditable = true;
+    descCell.textContent = p.description != null ? p.description : '';
+    descCell.addEventListener('blur', async (e) => {
+      const val = e.target.textContent.trim();
+      if (val === (p.description != null ? String(p.description) : '')) return;
+      await updateProductField(p.id, 'description', val);
+    });
+
+    detailsCell.innerHTML = `<strong>Image URL:</strong> `;
+    detailsCell.appendChild(imageCell);
+    detailsCell.innerHTML += `<br><strong>Description:</strong> `;
+    detailsCell.appendChild(descCell);
+    detailsRow.appendChild(detailsCell);
+    tbody.appendChild(detailsRow);
   });
-}
-
-async function handleFieldUpdate(e, p, key) {
-  let val = e.target.textContent.trim();
-  if (val === (p[key] != null ? String(p[key]) : '')) return;
-
-  let updateValue = val;
-  if (key === 'price') {
-    if (val !== 'TBA' && isNaN(Number(val))) {
-      alert('Price must be a number or "TBA".');
-      e.target.textContent = p[key] != null ? String(p[key]) : '';
-      return;
-    }
-    updateValue = val === 'TBA' ? 'TBA' : Number(val);
-  } else if (key === 'discount' || key === 'stock') {
-    if (isNaN(Number(val))) {
-      alert(`${key.charAt(0).toUpperCase() + key.slice(1)} must be a number.`);
-      e.target.textContent = p[key] != null ? String(p[key]) : '';
-      return;
-    }
-    updateValue = Number(val);
-  } else if (key === 'image' || key === 'description' || key === 'category' || key === 'name' || key === 'color') {
-    updateValue = val;
-  }
-
-  await updateProductField(p.id, key, updateValue);
-  // Update local p for future comparisons
-  p[key] = updateValue;
-  return updateValue;
-}
-
-function toggleDetails(row) {
-  const detailsRow = row.nextElementSibling;
-  if (detailsRow && detailsRow.classList.contains('details-row')) {
-    detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
-  }
 }
 
 function computeStatus(p) { 
