@@ -516,11 +516,24 @@ async function renderOrdersTable() {
 
   orders.forEach(o => {
     const tr = document.createElement('tr');
+    
+    // Toggle button cell
+    const tdToggle = document.createElement('td');
+    tdToggle.className = 'toggle-details';
+    tdToggle.innerHTML = '▼';
+    tdToggle.addEventListener('click', (e) => {
+      const detailsRow = e.target.closest('tr').nextElementSibling;
+      const isVisible = detailsRow.classList.contains('show');
+      detailsRow.classList.toggle('show', !isVisible);
+      e.target.textContent = isVisible ? '▼' : '▲';
+    });
+    tr.appendChild(tdToggle);
+
+    // Main columns
     const tds = [
       new Date(o.timeISO).toLocaleString(),
       o.productName,
       o.color,
-      '৳' + Number(o.unitPrice).toFixed(2),
       o.quantity,
       '৳' + Number(o.deliveryFee).toFixed(2),
       '৳' + Number(o.total).toFixed(2),
@@ -528,7 +541,6 @@ async function renderOrdersTable() {
       o.phone,
       o.address,
       o.paymentMethod,
-      o.paymentNumber,
       o.transactionId
     ];
     tds.forEach(v => {
@@ -562,6 +574,20 @@ async function renderOrdersTable() {
     tr.appendChild(tdStatus);
 
     tbody.appendChild(tr);
+
+    // Details row for Unit Price
+    const detailsRow = document.createElement('tr');
+    detailsRow.className = 'details-row';
+    const detailsCell = document.createElement('td');
+    detailsCell.colSpan = 12; // Span across toggle, main columns, and status
+    detailsCell.className = 'details-content';
+
+    const unitPriceCell = document.createElement('div');
+    unitPriceCell.textContent = `Unit Price: ৳${Number(o.unitPrice).toFixed(2)}`;
+    detailsCell.appendChild(unitPriceCell);
+
+    detailsRow.appendChild(detailsCell);
+    tbody.appendChild(detailsRow);
   });
 }
 
