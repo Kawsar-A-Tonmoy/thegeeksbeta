@@ -84,6 +84,8 @@ button:hover {
 button.secondary { background: #e5e7eb; color: #111827; }
 button.danger { background: var(--danger); }
 button:disabled { opacity: .5; cursor: not-allowed; }
+button.preorder-btn { background: #8b5cf6; }
+button.preorder-btn:hover { background: #7c3aed; }
 
 .product-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
 .new-hot-list { grid-template-columns: repeat(5, 1fr); }
@@ -97,6 +99,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .badge.hot { background: #fee2e2; color: #b91c1c; }
 .badge.oos { background: #e5e7eb; color: #374151; }
 .badge.upcoming { background: #d1fae5; color: #065f46; }
+.badge.preorder { background: #ede9fe; color: #6d28d9; }
 .price { font-weight: 600; }
 .price s { color: #6b7280; font-weight: 400; margin-right: 6px; }
 .muted { color: var(--muted); font-size: 13px; }

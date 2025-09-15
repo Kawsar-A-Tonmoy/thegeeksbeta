@@ -78,7 +78,8 @@ async function displayProducts() {
 
 function createProductCard(p) {
   const isUpcoming = p.price === 'TBA';
-  const isOOS = !isUpcoming && Number(p.stock) <= 0;
+  const isOOS = !isUpcoming && Number(p.stock) <= 0 && Number(p.stock) !== -1;
+  const isPreOrder = Number(p.stock) === -1;
   const hasDiscount = Number(p.discount) > 0;
   const price = Number(p.price) || 0;
   const finalPrice = hasDiscount ? (price - Number(p.discount)) : price;
@@ -93,6 +94,7 @@ function createProductCard(p) {
       ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ``}
       ${isOOS ? `<span class="badge oos">OUT OF STOCK</span>` : ``}
       ${isUpcoming ? `<span class="badge upcoming">UPCOMING</span>` : ``}
+      ${isPreOrder ? `<span class="badge preorder">PRE ORDER</span>` : ``}
     </div>
     <h3>${p.name}</h3>
     <div class="muted">Color: ${p.color || '-'}</div>
@@ -101,14 +103,18 @@ function createProductCard(p) {
     </div>
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
-      <button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>
+      ${isPreOrder ? `<button class="preorder-btn">Pre Order</button>` : `<button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>`}
     </div>
   `;
 
-  if (!isOOS && !isUpcoming) {
+  if (!isOOS && !isUpcoming && !isPreOrder) {
     card.querySelector('.order-btn').addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
       openCheckoutModal(id);
+    });
+  } else if (isPreOrder) {
+    card.querySelector('.preorder-btn').addEventListener('click', () => {
+      window.location.href = 'https://facebook.com/thegeek.shop0';
     });
   }
 
@@ -279,15 +285,15 @@ async function submitCheckoutOrder(e) {
       }
 
       const currentStock = Number(productSnap.data().stock);
-      if (currentStock < qty) {
+      if (currentStock !== -1 && currentStock < qty) { // Allow pre-orders (stock = -1) to bypass stock check
         throw new Error(`Insufficient stock. Only ${currentStock} available.`);
       }
 
-      const newStock = currentStock - qty;
-      console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
-
-      // Update stock
-      transaction.update(productRef, { stock: Number(newStock) });
+      if (currentStock !== -1) { // Only update stock if not a pre-order
+        const newStock = currentStock - qty;
+        console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
+        transaction.update(productRef, { stock: Number(newStock) });
+      }
 
       // Create order
       const orderRef = doc(collection(db, 'orders'));
@@ -477,6 +483,7 @@ async function renderDataTable() {
 
 function computeStatus(p) { 
   if (p.price === 'TBA') return 'Upcoming';
+  if (Number(p.stock) === -1) return 'Pre Order';
   return Number(p.stock) > 0 ? 'In Stock' : 'Out of Stock'; 
 }
 
