@@ -3,21 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin</title>
+  <title>Admin Panel</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-  </script>
   <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
-     <nav>
-      <a href="index.html" class="logo">
-        <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
-      </a>
+    <nav>
+      <div class="logo">
+        <img src="logo.png" alt="Logo" height="40">
+      </div>
       <div class="nav-links">
         <a href="index.html">Products</a>
         <a href="status.html">Order Status</a>
@@ -27,24 +22,26 @@
   </header>
 
   <div class="container">
-    <div id="login-panel">
-      <h1>Admin Login</h1>
+    <div id="login-panel" class="card" style="display: none;">
+      <h2>Admin Login</h2>
       <form id="login-form" class="form">
-        <div>
-          <label>Email</label>
-          <input id="admin-email" type="email" required>
-        </div>
-        <div>
-          <label>Password</label>
-          <input id="admin-pass" type="password" required>
+        <div class="row">
+          <div>
+            <label for="admin-email">Email</label>
+            <input id="admin-email" type="email" required>
+          </div>
+          <div>
+            <label for="admin-pass">Password</label>
+            <input id="admin-pass" type="password" required>
+          </div>
         </div>
         <button type="submit">Login</button>
       </form>
     </div>
 
-    <div id="admin-panel" style="display: none;">
+    <div id="admin-panel" class="card" style="display: none;">
       <div class="panel-header">
-        <h1>Admin Panel</h1>
+        <h2>Admin Panel</h2>
         <button onclick="logoutAdmin()">Logout</button>
       </div>
 
@@ -52,27 +49,27 @@
       <form id="add-product-form" class="form">
         <div class="row">
           <div>
-            <label>Name</label>
+            <label for="add-name">Name</label>
             <input id="add-name" required>
           </div>
           <div>
-            <label>Price (tk)</label>
+            <label for="add-price">Price (tk)</label>
             <input id="add-price" required>
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Discount (tk)</label>
+            <label for="add-discount">Discount (tk)</label>
             <input id="add-discount">
           </div>
           <div>
-            <label>Image URL</label>
+            <label for="add-image">Image URL</label>
             <input id="add-image" required>
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Category</label>
+            <label for="add-category">Category</label>
             <select id="add-category" required>
               <option value="all">All</option>
               <option value="new">New</option>
@@ -80,32 +77,36 @@
             </select>
           </div>
           <div>
-            <label>Color</label>
+            <label for="add-color">Color</label>
             <input id="add-color">
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Stock</label>
-            <input id="add-stock" type="number" min="0">
+            <label for="add-stock">Stock</label>
+            <input id="add-stock" type="number">
           </div>
         </div>
         <div>
-          <label>Description</label>
+          <label for="add-desc">Description</label>
           <textarea id="add-desc"></textarea>
         </div>
         <button type="submit">Add Product</button>
       </form>
 
       <h2>Products</h2>
-      <div class="table-wrapper products-table-wrapper">
+      <div class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
+              <th></th> <!-- Toggle column -->
               <th>Name</th>
-              <th>Color</th>
               <th>Price</th>
+              <th>Category</th>
+              <th>Color</th>
+              <th>Discount (tk)</th>
               <th>Stock</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -114,7 +115,7 @@
       </div>
 
       <h2>Orders</h2>
-      <div class="table-wrapper orders-table-wrapper">
+      <div class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -139,6 +140,5 @@
       </div>
     </div>
   </div>
-
 </body>
 </html>
