@@ -47,6 +47,47 @@ async function loadOrders() {
   }
 }
 
+// ====== IMAGE VIEWER ======
+function setupImageViewer() {
+  let viewer = document.querySelector('.image-viewer');
+  if (!viewer) {
+    viewer = document.createElement('div');
+    viewer.className = 'image-viewer';
+    viewer.innerHTML = `
+      <button class="close-btn">×</button>
+      <img src="" alt="Product Image">
+    `;
+    document.body.appendChild(viewer);
+  }
+
+  const closeBtn = viewer.querySelector('.close-btn');
+  const img = viewer.querySelector('img');
+
+  // Close viewer on button click or click outside image
+  closeBtn.addEventListener('click', () => viewer.classList.remove('show'));
+  viewer.addEventListener('click', (e) => {
+    if (e.target === viewer) {
+      viewer.classList.remove('show');
+      viewer.classList.remove('zoomed');
+    }
+  });
+
+  // Toggle zoom on double click
+  img.addEventListener('dblclick', () => {
+    viewer.classList.toggle('zoomed');
+  });
+
+  // Bind image clicks on product cards
+  document.querySelectorAll('.product-card img').forEach(imgElement => {
+    imgElement.addEventListener('click', () => {
+      img.src = imgElement.src;
+      img.alt = imgElement.alt;
+      viewer.classList.add('show');
+      viewer.classList.remove('zoomed');
+    });
+  });
+}
+
 // ====== PRODUCT PAGE ======
 async function displayProducts() {
   const sections = {
@@ -74,6 +115,9 @@ async function displayProducts() {
     document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
     document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
   }
+
+  // Setup image viewer
+  setupImageViewer();
 }
 
 function createProductCard(p) {
