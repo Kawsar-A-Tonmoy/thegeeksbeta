@@ -107,9 +107,9 @@ async function displayProducts() {
 }
 
 function createProductCard(p) {
-  const isUpcoming = p.price === 'TBA';
-  const isOOS = !isUpcoming && Number(p.stock) <= 0 && Number(p.stock) !== -1;
-  const isPreOrder = Number(p.stock) === -1;
+  const isUpcoming = p.availability === 'upcoming';
+  const isOOS = p.availability === 'ready' && Number(p.stock) <= 0;
+  const isPreOrder = p.availability === 'preorder';
   const hasDiscount = Number(p.discount) > 0;
   const price = Number(p.price) || 0;
   const finalPrice = hasDiscount ? (price - Number(p.discount)) : price;
@@ -227,7 +227,7 @@ function updatePayments() {
   const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
   const delivery = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
   const paymentMethod = document.getElementById('co-payment').value;
-  const isPreOrder = Number(document.getElementById('co-available-stock').value) === -1;
+  const isPreOrder = document.getElementById('co-available-stock').value === '-1';
 
   const productCost = qty * unit;
   const total = productCost + delivery;
@@ -375,9 +375,10 @@ async function addProduct(e) {
   const category = document.getElementById('add-category').value;
   const color = document.getElementById('add-color').value.trim();
   const stock = Number(document.getElementById('add-stock').value) || 0;
+  const availability = document.getElementById('add-availability').value;
   const description = document.getElementById('add-desc').value.trim();
 
-  if (!name || !price || !category) {
+  if (!name || !price || !category || !availability) {
     alert('Please fill all required fields.');
     return;
   }
@@ -399,6 +400,7 @@ async function addProduct(e) {
       category,
       color,
       stock,
+      availability,
       description
     });
     alert('Product added successfully!');
@@ -531,8 +533,8 @@ async function renderDataTable() {
 }
 
 function computeStatus(p) { 
-  if (p.price === 'TBA') return 'Upcoming';
-  if (Number(p.stock) === -1) return 'Pre Order';
+  if (p.availability === 'upcoming') return 'Upcoming';
+  if (p.availability === 'preorder') return 'Pre Order';
   return Number(p.stock) > 0 ? 'In Stock' : 'Out of Stock'; 
 }
 
@@ -557,7 +559,7 @@ async function deleteProductById(id) {
 
 // ====== ADMIN: ORDERS TABLE ======
 async function renderOrdersTable() {
-  const tbody = document.getElementById('orders-body');
+  const tbody =, document.getElementById('orders-body');
   if (!tbody) return;
 
   const orders = await loadOrders();
