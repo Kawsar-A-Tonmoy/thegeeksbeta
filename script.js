@@ -134,7 +134,7 @@ function createProductCard(p) {
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
       ${isPreOrder ? `<button class="preorder-btn">Pre Order</button>` : `<button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>`}
-      <button class="msg-btn"><img src="https://img.icons8.com/?size=100&id=60663&format=png&color=000000" alt="Message" style="width:24px;height:24px;"></button>
+      <button class="msg-btn" style="background:none;border:none;padding:0;cursor:pointer;"><img src="https://img.icons8.com/?size=100&id=60663&format=png&color=000000" alt="Message" style="width:24px;height:24px;"></button>
     </div>
   `;
 
@@ -201,6 +201,8 @@ async function openCheckoutModal(productId, isPreOrder = false) {
   document.getElementById('co-address').value = '';
   document.getElementById('co-note').textContent = '';
   document.getElementById('co-policy').checked = false;
+  document.getElementById('co-pay-now').value = '';
+  document.getElementById('co-due').value = '';
 
   document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
   document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
@@ -231,7 +233,7 @@ function updatePayments() {
   const total = productCost + delivery;
 
   let payNow = 0;
-  let due = total;
+  let due = 0;
 
   if (paymentMethod === 'Bkash') {
     if (isPreOrder) {
@@ -245,11 +247,14 @@ function updatePayments() {
   } else if (paymentMethod === 'Cash on Delivery') {
     payNow = delivery;
     due = productCost;
+  } else {
+    payNow = 0;
+    due = 0;
   }
 
   document.getElementById('co-total').value = total.toFixed(2);
-  document.getElementById('co-pay-now').value = payNow.toFixed(2);
-  document.getElementById('co-due').value = due.toFixed(2);
+  document.getElementById('co-pay-now').value = paymentMethod ? payNow.toFixed(2) : '';
+  document.getElementById('co-due').value = paymentMethod ? due.toFixed(2) : '';
 }
 
 function handlePaymentChange(e) {
@@ -267,6 +272,7 @@ function handlePaymentChange(e) {
     note.textContent = '';
     paymentNumberInput.value = '';
   }
+  updatePayments();
 }
 
 async function submitCheckoutOrder(e) {
@@ -325,8 +331,10 @@ async function submitCheckoutOrder(e) {
       if (!product.exists()) throw new Error('Product not found.');
       const stock = product.data().stock;
       if (stock !== -1 && qty > stock) throw new Error('Insufficient stock.');
-      const newStock = stock === -1 ? -1 : stock - qty;
-      transaction.update(productDoc, { stock: newStock });
+      const newStock = stock === -1 ? -1 : Math.max(stock - qty, 0);
+      if (stock !== -1) {
+        transaction.update(productDoc, { stock: newStock });
+      }
       transaction.set(doc(collection(db, 'orders')), {
         productId,
         productName: document.getElementById('co-product-name').value,
