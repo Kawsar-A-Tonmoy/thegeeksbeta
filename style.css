@@ -132,119 +132,164 @@ button.preorder-btn:hover { background: #7c3aed; }
 }
 
 /* Modal */
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: flex-start; justify-content: center; padding: 16px; z-index: 50; overflow-y: auto; }
-.modal.show { display: flex; }
-.modal-content { width: 100%; max-width: 760px; max-height: 90vh; overflow-y: auto; }
+.modal { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,.4); 
+  display: none; 
+  align-items: flex-start; 
+  justify-content: center; 
+  padding: 16px; 
+  z-index: 50; 
+  overflow: hidden; /* Changed from overflow-y: auto to prevent modal scrollbars */
+}
+.modal.show { 
+  display: flex; 
+}
+.modal-content { 
+  width: 100%; 
+  max-width: 760px; 
+  max-height: 90vh; 
+  overflow-y: auto; /* Allow vertical scrolling for content */
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+  background: var(--card); 
+  border-radius: 12px; 
+  box-shadow: 0 2px 10px rgba(0,0,0,.06); 
+  border: 1px solid var(--glass-border); 
+}
+#checkout-form { 
+  width: 100%; 
+  box-sizing: border-box; /* Ensure form respects container boundaries */
+}
+#checkout-form .row input, 
+#checkout-form .row select, 
+#checkout-form textarea { 
+  max-width: 100%; /* Prevent inputs from exceeding container width */
+  box-sizing: border-box; 
+}
+#co-note { 
+  max-width: 100%; 
+  overflow-wrap: break-word; /* Ensure long text wraps */
+  white-space: normal; /* Allow text to wrap */
+  font-size: 0.9rem; 
+}
+#co-pay-now, #co-due-amount { 
+  max-width: 100%; 
+  box-sizing: border-box; 
+}
 
-.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #eee; }
+/* Modal Header */
+.modal-header { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 12px 16px; 
+  border-bottom: 1px solid #eee; 
+}
 
 /* Notice Section */
 .notice-section {
-    max-width: 1200px;
-    margin: 10px auto;
-    padding: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
+  max-width: 1200px;
+  margin: 10px auto;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
 }
 .notice-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    color: #333;
-    flex: 1;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  color: #333;
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .notice-card.card:hover {
-    transform: translateY(-4px);
+  transform: translateY(-4px);
 }
 .notice-card h3 {
-    margin: 0 0 10px 0;
-    color: #222;
-    font-size: 1.25rem;
+  margin: 0 0 10px 0;
+  color: #222;
+  font-size: 1.25rem;
 }
 .notice-card p {
-    color: #444;
-    margin: 0;
-    font-size: 0.9rem;
+  color: #444;
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 /* Status Form Enhancements */
 .status-form {
-    max-width: 600px;
-    margin: 0 auto 16px;
+  max-width: 600px;
+  margin: 0 auto 16px;
 }
 .status-form .form {
-    padding: 24px;
+  padding: 24px;
 }
 .status-form label {
-    font-weight: 500;
-    margin-bottom: 8px;
-    display: block;
-    color: var(--text);
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+  color: var(--text);
 }
 .status-form button {
-    background: var(--form-accent);
-    font-weight: 500;
+  background: var(--form-accent);
+  font-weight: 500;
 }
 .status-form button:hover {
-    background: #2563eb;
+  background: #2563eb;
 }
 
 /* Footer Adjustments */
 footer {
-    text-align: center;
-    padding: 8px 0;
-    margin: 0;
-    font-size: 0.9rem;
+  text-align: center;
+  padding: 8px 0;
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .image-viewer {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
 }
-
 .image-viewer.show {
-    display: flex;
+  display: flex;
 }
-
 .image-viewer img {
-    max-width: 90%;
-    max-height: 90%;
-    object-fit: contain;
-    border-radius: 8px;
-    transition: transform 0.3s ease;
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
 }
-
 .image-viewer.zoomed img {
-    transform: scale(1.5);
+  transform: scale(1.5);
 }
-
 .close-viewer {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 30px;
-    cursor: pointer;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
 }
 
 /* Mobile-specific adjustments */
