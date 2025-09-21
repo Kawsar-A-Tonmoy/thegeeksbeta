@@ -3,72 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel</title>
+  <title>Admin - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script type="module" src="script.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <nav>
-      <div class="logo">
-        <img src="logo.png" alt="Logo" height="40">
-      </div>
-      <div class="nav-links">
-        <a href="index.html">Products</a>
-        <a href="status.html">Order Status</a>
-        <a href="admin.html">Admin</a>
-      </div>
+  <header>
+    <nav class="navbar">
+      <a href="index.html">Products</a>
+      <a href="status.html">Order Status</a>
+      <a href="admin.html" class="active">Admin</a>
     </nav>
   </header>
 
-  <div class="container">
-    <div id="login-panel" class="card" style="display: none;">
+  <main>
+    <section id="login-panel" style="display: block;">
       <h2>Admin Login</h2>
-      <form id="login-form" class="form">
-        <div class="row">
-          <div>
-            <label for="admin-email">Email</label>
-            <input id="admin-email" type="email" required>
-          </div>
-          <div>
-            <label for="admin-pass">Password</label>
-            <input id="admin-pass" type="password" required>
-          </div>
+      <form id="login-form" class="card">
+        <div class="form-group">
+          <label for="admin-email">Email</label>
+          <input type="email" id="admin-email" required>
+        </div>
+        <div class="form-group">
+          <label for="admin-pass">Password</label>
+          <input type="password" id="admin-pass" required>
         </div>
         <button type="submit">Login</button>
       </form>
-    </div>
+    </section>
 
-    <div id="admin-panel" class="card" style="display: none;">
-      <div class="panel-header">
-        <h2>Admin Panel</h2>
-        <button onclick="logoutAdmin()">Logout</button>
-      </div>
+    <section id="admin-panel" style="display: none;">
+      <h2>Admin Panel</h2>
+      <button onclick="logoutAdmin()">Logout</button>
 
-      <h2>Add Product</h2>
-      <form id="add-product-form" class="form">
+      <h3>Add Product</h3>
+      <form id="add-product-form" class="card">
         <div class="row">
-          <div>
+          <div class="form-group">
             <label for="add-name">Name</label>
-            <input id="add-name" required>
+            <input type="text" id="add-name" required>
           </div>
-          <div>
+          <div class="form-group">
             <label for="add-price">Price (tk)</label>
-            <input id="add-price" required>
+            <input type="text" id="add-price" required>
           </div>
         </div>
         <div class="row">
-          <div>
+          <div class="form-group">
             <label for="add-discount">Discount (tk)</label>
-            <input id="add-discount">
+            <input type="text" id="add-discount">
           </div>
-          <div>
+          <div class="form-group">
             <label for="add-image">Image URL</label>
-            <input id="add-image" required>
+            <input type="url" id="add-image" required>
           </div>
         </div>
         <div class="row">
-          <div>
+          <div class="form-group">
             <label for="add-category">Category</label>
             <select id="add-category" required>
               <option value="all">All</option>
@@ -76,69 +66,65 @@
               <option value="hot">Hot</option>
             </select>
           </div>
-          <div>
+          <div class="form-group">
             <label for="add-color">Color</label>
-            <input id="add-color">
+            <input type="text" id="add-color">
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label for="add-stock">Stock</label>
-            <input id="add-stock" type="number">
-          </div>
+        <div class="form-group">
+          <label for="add-stock">Stock</label>
+          <input type="text" id="add-stock">
         </div>
-        <div>
+        <div class="form-group">
           <label for="add-desc">Description</label>
           <textarea id="add-desc"></textarea>
         </div>
         <button type="submit">Add Product</button>
       </form>
 
-      <h2>Products</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th> <!-- Toggle column -->
-              <th>Name</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Color</th>
-              <th>Discount (tk)</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="products-body"></tbody>
-        </table>
-      </div>
+      <h3>Products</h3>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Color</th>
+            <th>Discount (tk)</th>
+            <th>Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="products-body"></tbody>
+      </table>
 
-      <h2>Orders</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Time</th>
-              <th>Product</th>
-              <th>Color</th>
-              <th>Qty</th>
-              <th>Delivery</th>
-              <th>Total</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>Payment</th>
-              <th>Txn ID</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="orders-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+      <h3>Orders</h3>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Time</th>
+            <th>Product</th>
+            <th>Color</th>
+            <th>Qty</th>
+            <th>Delivery</th>
+            <th>Paid</th>
+            <th>Due</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Payment</th>
+            <th>Txn ID</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module" src="script.js"></script>
 </body>
-
 </html>
