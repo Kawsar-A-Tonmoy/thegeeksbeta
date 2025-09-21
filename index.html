@@ -4,119 +4,135 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Geek Shop</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" type="module"></script>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <nav>
-      <ul>
-        <li><a href="index.html" class="active">Products</a></li>
-        <li><a href="status.html">Order Status</a></li>
-        <li><a href="admin.html">Admin</a></li>
-      </ul>
+      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
+      <div class="nav-links">
+        <a href="index.html">Products</a>
+        <a href="status.html">Order Status</a>
+        <a href="admin.html">Admin</a>
+      </div>
     </nav>
   </header>
 
-  <main>
-    <section>
-      <h1>Products</h1>
-      <h2>New Added</h2>
-      <div class="products" id="new-products"></div>
+  <main class="container">
+    <h1>Products</h1>
 
-      <h2>Hot Deals</h2>
-      <div class="products" id="hot-deals"></div>
+    <h2>New Added</h2>
+    <div id="new-products" class="product-list new-hot-list"></div>
 
-      <h2>All Products</h2>
-      <div class="products" id="all-products"></div>
-    </section>
+    <h2>Hot Deals</h2>
+    <div id="hot-deals" class="product-list new-hot-list"></div>
 
-    <div class="modal" id="checkout-modal">
-      <div class="modal-content">
+    <h2>All Products</h2>
+    <div id="all-products" class="product-list"></div>
+  </main>
+
+  <div id="image-viewer" class="image-viewer">
+    <button id="close-viewer" class="close-viewer">&times;</button>
+    <img id="viewer-img" src="" alt="">
+  </div>
+
+  <div id="checkout-modal" class="modal">
+    <div class="card modal-content">
+      <div class="modal-header">
         <h2>Checkout</h2>
         <button id="close-modal-btn">Close</button>
-        <form id="checkout-form">
-          <input type="hidden" id="co-product-id">
+      </div>
+      <form id="checkout-form" class="form">
+        <input type="hidden" id="co-product-id">
+        <div class="row">
           <div>
             <label>Product Name</label>
-            <input type="text" id="co-product-name" readonly>
+            <input id="co-product-name" readonly>
           </div>
           <div>
             <label>Color</label>
-            <input type="text" id="co-color" readonly>
+            <input id="co-color" readonly>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label>Price (tk)</label>
-            <input type="text" id="co-price" readonly>
+            <input id="co-price" readonly>
             <input type="hidden" id="co-unit-price-raw">
             <input type="hidden" id="co-available-stock">
           </div>
           <div>
             <label>Quantity</label>
-            <input type="number" id="co-qty" min="1" value="1" required>
+            <input id="co-qty" type="number" min="1" value="1">
           </div>
+        </div>
+        <div class="row">
           <div>
             <label>Delivery</label>
-            <input type="text" id="co-delivery" readonly>
+            <input id="co-delivery" readonly>
           </div>
           <div>
             <label>Total (tk)</label>
-            <input type="text" id="co-total" readonly>
+            <input id="co-total" readonly>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label>Name</label>
-            <input type="text" id="co-name" required>
+            <input id="co-name" required>
           </div>
           <div>
             <label>Phone</label>
-            <input type="text" id="co-phone" required>
+            <input id="co-phone" type="tel" required>
           </div>
-          <div>
-            <label>Address</label>
-            <textarea id="co-address" required></textarea>
-          </div>
+        </div>
+        <div>
+          <label>Address</label>
+          <textarea id="co-address" required></textarea>
+        </div>
+        <div class="row">
           <div>
             <label>Payment Method</label>
             <select id="co-payment" required>
-              <option value="" disabled selected>Select</option>
+              <option value="">Select</option>
               <option value="Cash on Delivery">Cash on Delivery</option>
               <option value="Bkash">Bkash</option>
             </select>
           </div>
           <div>
             <label>Pay to (Send money)</label>
-            <input type="text" id="co-payment-number" readonly>
+            <input id="co-payment-number" readonly>
           </div>
+        </div>
+        <div class="row">
           <div>
-            <label>Transaction ID</label>
-            <input type="text" id="co-txn">
-          </div>
-          <div id="pay-due-div" style="display:none;">
             <label>Pay Now (tk)</label>
-            <input type="text" id="co-pay-now" readonly>
-            <label>Due Amount (tk)</label>
-            <input type="text" id="co-due" readonly>
+            <input id="co-pay-now" readonly>
           </div>
           <div>
-            <input type="checkbox" id="co-policy" required>
-            <label for="co-policy">I agree to the <a href="status.html" target="_blank">Order Policy</a></label>
+            <label>Due Amount (tk)</label>
+            <input id="co-due-amount" readonly>
           </div>
-          <p id="co-note"></p>
-          <button type="submit" id="place-order-btn">Place Order</button>
-        </form>
-      </div>
+        </div>
+        <div>
+          <label>Transaction ID</label>
+          <input id="co-txn">
+        </div>
+        <div>
+          <label>
+            <input type="checkbox" id="co-policy" required>
+            I agree to the <a href="status.html">Order Policy</a>
+          </label>
+        </div>
+        <div>
+          <p id="co-note" class="muted"></p>
+        </div>
+        <button id="place-order-btn" type="submit">Place Order</button>
+      </form>
     </div>
+  </div>
 
-    <div class="viewer" id="image-viewer">
-      <img id="viewer-img" src="" alt="">
-      <button id="close-viewer">×</button>
-    </div>
-  </main>
-
-  <footer>
-    <p>© All rights reserved by The Geek Shop</p>
-  </footer>
-
-  <script type="module" src="script.js"></script>
+  <footer>© All rights reserved by The Geek Shop</footer>
 </body>
 </html>
