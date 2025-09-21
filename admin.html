@@ -4,149 +4,126 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - The Geek Shop</title>
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="script.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="site-header">
+  <header>
     <nav>
-      <div class="logo">
-        <img src="logo.png" alt="The Geek Shop" width="120">
-      </div>
-      <div class="nav-links">
-        <a href="index.html">Products</a>
-        <a href="status.html">Order Status</a>
-        <a href="admin.html">Admin</a>
-      </div>
+      <ul>
+        <li><a href="index.html">Products</a></li>
+        <li><a href="status.html">Order Status</a></li>
+        <li><a href="admin.html" class="active">Admin</a></li>
+      </ul>
     </nav>
   </header>
 
-  <main class="container">
+  <main>
     <section id="login-panel">
-      <h1>Admin Login</h1>
-      <div class="card">
-        <form id="login-form" class="form">
-          <div>
-            <label>Email</label>
-            <input id="admin-email" type="email">
-          </div>
-          <div>
-            <label>Password</label>
-            <input id="admin-pass" type="password">
-          </div>
-          <button type="submit">Login</button>
-        </form>
-      </div>
+      <h2>Admin Login</h2>
+      <form id="login-form">
+        <div>
+          <label>Email</label>
+          <input type="email" id="admin-email" required>
+        </div>
+        <div>
+          <label>Password</label>
+          <input type="password" id="admin-pass" required>
+        </div>
+        <button type="submit">Login</button>
+      </form>
     </section>
 
-    <section id="admin-panel" style="display: none;">
-      <div class="panel-header">
-        <h1>Admin Panel</h1>
-        <button onclick="logoutAdmin()">Logout</button>
-      </div>
-      <h2>Add Product</h2>
-      <div class="card">
-        <form id="add-product-form" class="form">
-          <div class="row">
-            <div>
-              <label>Name</label>
-              <input id="add-name">
-            </div>
-            <div>
-              <label>Price (tk)</label>
-              <input id="add-price">
-            </div>
-          </div>
-          <div class="row">
-            <div>
-              <label>Discount (tk)</label>
-              <input id="add-discount" type="number" min="0">
-            </div>
-            <div>
-              <label>Image URL</label>
-              <input id="add-image">
-            </div>
-          </div>
-          <div class="row">
-            <div>
-              <label>Category</label>
-              <select id="add-category">
-                <option value="all">All</option>
-                <option value="new">New</option>
-                <option value="hot">Hot</option>
-              </select>
-            </div>
-            <div>
-              <label>Color</label>
-              <input id="add-color">
-            </div>
-          </div>
-          <div class="row">
-            <div>
-              <label>Stock</label>
-              <input id="add-stock" type="number" min="-1">
-            </div>
-            <div>
-              <label>Availability</label>
-              <select id="add-availability">
-                <option value="ready">Ready to Order</option>
-                <option value="preorder">Pre Order</option>
-                <option value="upcoming">Upcoming</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label>Description</label>
-            <textarea id="add-desc"></textarea>
-          </div>
-          <button type="submit">Add Product</button>
-        </form>
-      </div>
-      <h2>Products</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Color</th>
-              <th>Discount (tk)</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="products-body"></tbody>
-        </table>
-      </div>
-      <h2>Orders</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Time</th>
-              <th>Product</th>
-              <th>Color</th>
-              <th>Qty</th>
-              <th>Delivery</th>
-              <th>Paid/Due</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>Payment</th>
-              <th>Txn ID</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="orders-body"></tbody>
-        </table>
-      </div>
+    <section id="admin-panel" style="display:none;">
+      <h2>Admin Panel</h2>
+      <button id="logout-btn">Logout</button>
+
+      <h3>Add Product</h3>
+      <form id="add-product-form">
+        <div>
+          <label>Name</label>
+          <input type="text" id="add-name" required>
+          <label>Price (tk)</label>
+          <input type="text" id="add-price" required>
+        </div>
+        <div>
+          <label>Discount (tk)</label>
+          <input type="text" id="add-discount" value="0">
+          <label>Image URL</label>
+          <input type="text" id="add-image" required>
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="add-category" required>
+            <option value="all">All</option>
+            <option value="new">New</option>
+            <option value="hot">Hot</option>
+          </select>
+          <label>Color</label>
+          <input type="text" id="add-color">
+        </div>
+        <div>
+          <label>Stock</label>
+          <input type="text" id="add-stock" value="0">
+        </div>
+        <div>
+          <label>Availability</label>
+          <select id="add-availability">
+            <option value="ready">Ready to order</option>
+            <option value="preorder">Pre order</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea id="add-desc"></textarea>
+        </div>
+        <button type="submit">Add Product</button>
+      </form>
+
+      <h3>Products</h3>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Color</th>
+            <th>Discount (tk)</th>
+            <th>Stock</th>
+            <th>Availability</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="products-body"></tbody>
+      </table>
+
+      <h3>Orders</h3>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Time</th>
+            <th>Product</th>
+            <th>Color</th>
+            <th>Qty</th>
+            <th>Delivery</th>
+            <th>Paid</th>
+            <th>Due</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Payment</th>
+            <th>Txn ID</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
     </section>
   </main>
 
-  <footer>© All rights reserved by The Geek Shop</footer>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
