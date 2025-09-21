@@ -130,7 +130,7 @@ function createProductCard(p) {
     </div>
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
-      ${isPreOrder ? `<button class="preorder-btn">Pre Order</button>` : `<button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>`}
+      ${isPreOrder ? `<button data-id="${p.id}" class="preorder-btn">Pre Order</button>` : `<button ${isOOS || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>`}
     </div>
   `;
 
@@ -140,8 +140,9 @@ function createProductCard(p) {
       openCheckoutModal(id);
     });
   } else if (isPreOrder) {
-    card.querySelector('.preorder-btn').addEventListener('click', () => {
-      window.location.href = 'https://facebook.com/thegeek.shop0';
+    card.querySelector('.preorder-btn').addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      openCheckoutModal(id, true);
     });
   }
 
@@ -168,7 +169,7 @@ function updateDeliveryCharge() {
 }
 
 // ====== CHECKOUT MODAL FLOW ======
-async function openCheckoutModal(productId) {
+async function openCheckoutModal(productId, isPreOrder = false) {
   const products = await loadProducts();
   const p = products.find(x => x.id === productId);
   if (!p) return;
@@ -185,16 +186,28 @@ async function openCheckoutModal(productId) {
   document.getElementById('co-available-stock').value = String(p.stock);
   document.getElementById('co-qty').value = 1;
   document.getElementById('co-qty').max = p.stock;
-  document.getElementById('co-payment').value = '';
-  document.getElementById('co-payment-number').value = '';
+  document.getElementById('co-payment').value = isPreOrder ? 'Bkash' : '';
+  document.getElementById('co-payment-number').value = isPreOrder ? BKASH_NUMBER : '';
   document.getElementById('co-txn').value = '';
   document.getElementById('co-name').value = '';
   document.getElementById('co-phone').value = '';
   document.getElementById('co-address').value = '';
-  document.getElementById('co-note').textContent = '';
+  document.getElementById('co-note').textContent = isPreOrder ? `Send money to ${BKASH_NUMBER} and provide transaction ID.` : '';
 
   document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
   document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
+
+  // Set Pay Now and Due fields
+  const payNowInput = document.getElementById('co-pay-now');
+  const dueInput = document.getElementById('co-due');
+  if (isPreOrder) {
+    const payNowAmount = Math.round((unit * 0.25) / 5) * 5; // Round to nearest multiple of 5
+    payNowInput.value = payNowAmount.toFixed(2);
+    dueInput.value = (unit - payNowAmount).toFixed(2);
+  } else {
+    payNowInput.value = '';
+    dueInput.value = '';
+  }
 
   updateTotalInModal();
 
@@ -211,7 +224,27 @@ function updateTotalInModal() {
   const qty = Number(document.getElementById('co-qty').value) || 1;
   const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
   const delivery = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
-  const total = (qty * unit) + delivery;
+  const paymentMethod = document.getElementById('co-payment').value;
+  const payNowInput = document.getElementById('co-pay-now');
+  const dueInput = document.getElementById('co-due');
+  const isPreOrder = Number(document.getElementById('co-available-stock').value) === -1;
+
+  let total = (qty * unit) + delivery;
+  if (isPreOrder) {
+    const payNowAmount = Math.round((unit * 0.25) / 5) * 5; // Round to nearest multiple of 5
+    payNowInput.value = payNowAmount.toFixed(2);
+    dueInput.value = (unit - payNowAmount).toFixed(2);
+  } else if (paymentMethod === 'Bkash') {
+    payNowInput.value = total.toFixed(2);
+    dueInput.value = '0.00';
+  } else if (paymentMethod === 'Cash on Delivery') {
+    payNowInput.value = delivery.toFixed(2);
+    dueInput.value = (qty * unit).toFixed(2);
+  } else {
+    payNowInput.value = '';
+    dueInput.value = '';
+  }
+
   document.getElementById('co-total').value = total.toFixed(2);
 }
 
@@ -229,6 +262,7 @@ function handlePaymentChange(e) {
     note.textContent = '';
     paymentNumberInput.value = '';
   }
+  updateTotalInModal();
 }
 
 async function submitCheckoutOrder(e) {
@@ -250,7 +284,7 @@ async function submitCheckoutOrder(e) {
     btn.disabled = false;
     return;
   }
-  if (qty > available) {
+  if (qty > available && available !== -1) {
     alert(`Quantity exceeds available stock of ${available}.`);
     btn.disabled = false;
     return;
@@ -269,6 +303,8 @@ async function submitCheckoutOrder(e) {
     return;
   }
   const total = (qty * unit) + delivery;
+  const payNow = Number(document.getElementById('co-pay-now').value) || 0;
+  const due = Number(document.getElementById('co-due').value) || 0;
 
   const orderData = {
     timeISO: new Date().toISOString(),
@@ -279,6 +315,8 @@ async function submitCheckoutOrder(e) {
     quantity: qty,
     deliveryFee: delivery,
     total,
+    paid: payNow,
+    due: due,
     customerName: document.getElementById('co-name').value.trim(),
     phone: document.getElementById('co-phone').value.trim(),
     address: document.getElementById('co-address').value.trim(),
@@ -312,17 +350,16 @@ async function submitCheckoutOrder(e) {
       }
 
       const currentStock = Number(productSnap.data().stock);
-      if (currentStock !== -1 && currentStock < qty) { // Allow pre-orders (stock = -1) to bypass stock check
+      if (currentStock !== -1 && currentStock < qty) {
         throw new Error(`Insufficient stock. Only ${currentStock} available.`);
       }
 
-      if (currentStock !== -1) { // Only update stock if not a pre-order
+      if (currentStock !== -1) {
         const newStock = currentStock - qty;
-        console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
+        console.log('Updating stock for product:', productId, 'New stock:', newStock);
         transaction.update(productRef, { stock: Number(newStock) });
       }
 
-      // Create order
       const orderRef = doc(collection(db, 'orders'));
       transaction.set(orderRef, orderData);
     });
@@ -405,10 +442,8 @@ async function renderDataTable() {
   ];
 
   products.forEach(p => {
-    // Main row
     const tr = document.createElement('tr');
 
-    // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
@@ -420,7 +455,6 @@ async function renderDataTable() {
     });
     tr.appendChild(tdToggle);
 
-    // Main columns
     cols.forEach(col => {
       const td = document.createElement('td');
       td.contentEditable = col.editable;
@@ -455,13 +489,11 @@ async function renderDataTable() {
       tr.appendChild(td);
     });
 
-    // Status column
     const tdStatus = document.createElement('td');
     tdStatus.dataset.status = '1';
     tdStatus.textContent = computeStatus(p);
     tr.appendChild(tdStatus);
 
-    // Actions column
     const tdActions = document.createElement('td');
     const del = document.createElement('button');
     del.className = 'danger';
@@ -474,12 +506,10 @@ async function renderDataTable() {
 
     tbody.appendChild(tr);
 
-    // Details row for Image URL and Description
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
-    detailsCell.colSpan = cols.length + 3; // Span across toggle, cols, status, and actions
-    detailsCell.className = 'details-content';
+    detailsCell.colSpan = cols.length + 3;
 
     const imageCell = document.createElement('div');
     imageCell.contentEditable = true;
@@ -544,7 +574,6 @@ async function renderOrdersTable() {
   orders.forEach(o => {
     const tr = document.createElement('tr');
     
-    // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
@@ -556,14 +585,14 @@ async function renderOrdersTable() {
     });
     tr.appendChild(tdToggle);
 
-    // Main columns
     const tds = [
       new Date(o.timeISO).toLocaleString(),
       o.productName,
       o.color,
       o.quantity,
       '৳' + Number(o.deliveryFee).toFixed(2),
-      '৳' + Number(o.total).toFixed(2),
+      '৳' + Number(o.paid).toFixed(2),
+      '৳' + Number(o.due).toFixed(2),
       o.customerName,
       o.phone,
       o.address,
@@ -576,7 +605,6 @@ async function renderOrdersTable() {
       tr.appendChild(td);
     });
 
-    // Status dropdown
     const tdStatus = document.createElement('td');
     const select = document.createElement('select');
     ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(opt => {
@@ -602,11 +630,10 @@ async function renderOrdersTable() {
 
     tbody.appendChild(tr);
 
-    // Details row for Unit Price
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
-    detailsCell.colSpan = 12; // Span across toggle, main columns, and status
+    detailsCell.colSpan = 13;
     detailsCell.className = 'details-content';
 
     const unitPriceCell = document.createElement('div');
@@ -656,10 +683,8 @@ function setupStatusForm() {
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  // Common
   displayProducts();
 
-  // Admin page
   const loginPanel = document.getElementById('login-panel');
   const adminPanel = document.getElementById('admin-panel');
   const addForm = document.getElementById('add-product-form');
@@ -698,6 +723,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Status page
   setupStatusForm();
 });
