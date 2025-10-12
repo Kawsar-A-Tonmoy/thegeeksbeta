@@ -16,7 +16,6 @@ const statusExplanations = {
   Delivered: 'Your order has been delivered.',
   Cancelled: 'Your order has been cancelled.'
 };
-
 const statusColors = {
   Pending: '#eab308',
   Processing: '#3b82f6',
@@ -35,7 +34,6 @@ async function loadProducts() {
     return [];
   }
 }
-
 async function loadOrders() {
   try {
     const q = query(collection(db, 'orders'), orderBy('timeISO', 'desc'));
@@ -56,14 +54,12 @@ async function displayProducts() {
   };
   if (!sections.all) return; // Not on product page
   Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
-
   const products = await loadProducts();
   products.forEach(p => {
     if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
     if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
     if (sections.all) sections.all.appendChild(createProductCard(p));
   });
-
   // Bind modal if on product page
   const modal = document.getElementById('checkout-modal');
   if (modal) {
@@ -74,7 +70,6 @@ async function displayProducts() {
     document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
     document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
   }
-
   // Bind image viewer
   const viewer = document.getElementById('image-viewer');
   const viewerImg = document.getElementById('viewer-img');
@@ -102,7 +97,6 @@ async function displayProducts() {
     });
   }
 }
-
 function createProductCard(p) {
   const isUpcoming = p.availability === 'Upcoming';
   const isOOS = !isUpcoming && Number(p.stock) <= 0 && p.availability !== 'Pre Order';
@@ -110,7 +104,6 @@ function createProductCard(p) {
   const hasDiscount = Number(p.discount) > 0;
   const price = Number(p.price) || 0;
   const finalPrice = hasDiscount ? (price - Number(p.discount)) : price;
-
   const card = document.createElement('div');
   card.className = 'card product-card';
   card.innerHTML = `
@@ -133,7 +126,6 @@ function createProductCard(p) {
       <a href="m.me/thegeek.shop0" class="messenger-btn"><i style='font-size:24px' class='fab'>&#xf39f;</i></a>
     </div>
   `;
-
   if (!isOOS && !isUpcoming && !isPreOrder) {
     card.querySelector('.order-btn').addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
@@ -144,7 +136,6 @@ function createProductCard(p) {
       openCheckoutModal(p.id, true);
     });
   }
-
   return card;
 }
 
@@ -158,7 +149,6 @@ function calculateDeliveryFee(address) {
   }
   return 150;
 }
-
 function updateDeliveryCharge() {
   const address = document.getElementById('co-address').value.trim();
   const deliveryFee = calculateDeliveryFee(address);
@@ -172,11 +162,10 @@ async function openCheckoutModal(productId, isPreOrder = false) {
   const products = await loadProducts();
   const p = products.find(x => x.id === productId);
   if (!p) return;
-
   const price = p.price === 'TBA' ? 0 : Number(p.price) || 0;
   const discount = Number(p.discount) || 0;
   const unit = price - discount;
-
+  const deliveryFee = Number(document.getElementById('co-delivery')?.dataset.fee) || DELIVERY_FEE;
   document.getElementById('co-product-id').value = p.id;
   document.getElementById('co-product-name').value = p.name;
   document.getElementById('co-color').value = p.color || '';
@@ -196,38 +185,31 @@ async function openCheckoutModal(productId, isPreOrder = false) {
   document.getElementById('co-policy').checked = false;
   document.getElementById('co-pay-now').style.display = 'none';
   document.getElementById('co-due-amount').style.display = 'none';
-
-  document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
-  document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
-
+  document.getElementById('co-delivery').value = `Delivery Charge = ${deliveryFee}`;
+  document.getElementById('co-delivery').dataset.fee = deliveryFee;
   if (isPreOrder) {
     const preOrderPrice = Math.round((unit * 0.25) / 5) * 5;
     document.getElementById('co-pay-now').value = preOrderPrice.toFixed(2);
-    document.getElementById('co-due-amount').value = (unit - preOrderPrice).toFixed(2);
+    document.getElementById('co-due-amount').value = ((unit - preOrderPrice) + deliveryFee).toFixed(2);
     document.getElementById('co-payment-number').value = BKASH_NUMBER;
     document.getElementById('co-note').textContent = `Send money to ${BKASH_NUMBER} and provide transaction ID.`;
     document.getElementById('co-pay-now').style.display = 'block';
     document.getElementById('co-due-amount').style.display = 'block';
   }
-
   updateTotalInModal();
-
   const modal = document.getElementById('checkout-modal');
   modal.classList.add('show');
 }
-
 function closeCheckoutModal() {
   const modal = document.getElementById('checkout-modal');
   modal.classList.remove('show');
 }
-
 function updateTotalInModal() {
   const qty = Number(document.getElementById('co-qty').value) || 1;
   const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
   const delivery = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
   const total = (qty * unit) + delivery;
   document.getElementById('co-total').value = total.toFixed(2);
-
   const paymentMethod = document.getElementById('co-payment').value;
   const isPreOrder = paymentMethod === 'Bkash' && document.getElementById('co-payment').disabled;
   if (paymentMethod && !isPreOrder) {
@@ -242,7 +224,6 @@ function updateTotalInModal() {
     document.getElementById('co-due-amount').style.display = 'none';
   }
 }
-
 function handlePaymentChange(e) {
   const method = e.target.value;
   const note = document.getElementById('co-note');
@@ -259,22 +240,18 @@ function handlePaymentChange(e) {
   }
   updateTotalInModal();
 }
-
 async function submitCheckoutOrder(e) {
   e.preventDefault();
   const btn = document.getElementById('place-order-btn');
   btn.disabled = true;
-
   if (!document.getElementById('co-policy').checked) {
     alert('Please agree to the order policy.');
     btn.disabled = false;
     return;
   }
-
   const productId = document.getElementById('co-product-id').value;
   const qty = Number(document.getElementById('co-qty').value);
   const available = Number(document.getElementById('co-available-stock').value);
-
   if (!productId) {
     alert('Product ID is missing.');
     btn.disabled = false;
@@ -290,7 +267,6 @@ async function submitCheckoutOrder(e) {
     btn.disabled = false;
     return;
   }
-
   const unit = Number(document.getElementById('co-unit-price-raw').value);
   if (isNaN(unit)) {
     alert('Invalid unit price.');
@@ -304,7 +280,6 @@ async function submitCheckoutOrder(e) {
     return;
   }
   const total = (qty * unit) + delivery;
-
   const orderData = {
     timeISO: new Date().toISOString(),
     productId,
@@ -324,44 +299,35 @@ async function submitCheckoutOrder(e) {
     transactionId: document.getElementById('co-txn').value.trim().toUpperCase(),
     status: 'Pending'
   };
-
   console.log('Order Data:', orderData); // Debug log
-
   if (!orderData.customerName || !orderData.phone || !orderData.address || !orderData.paymentMethod) {
     alert('Please fill all required fields.');
     btn.disabled = false;
     return;
   }
-
   if (orderData.paymentMethod === 'Bkash' && (!orderData.paymentNumber || !orderData.transactionId)) {
     alert('Please provide payment number and transaction ID for Bkash.');
     btn.disabled = false;
     return;
   }
-
   try {
     await runTransaction(db, async (transaction) => {
       const productRef = doc(db, 'products', productId);
       const productSnap = await transaction.get(productRef);
-
       if (!productSnap.exists()) {
         throw new Error('Product not found.');
       }
-
       const currentStock = Number(productSnap.data().stock);
       if (currentStock !== -1 && currentStock < qty && productSnap.data().availability !== 'Pre Order') {
         throw new Error(`Insufficient stock. Only ${currentStock} available.`);
       }
-
       if (currentStock !== -1 && productSnap.data().availability !== 'Pre Order') {
         const newStock = currentStock - qty;
         console.log('Updating stock for product:', productId, 'New stock:', newStock); // Debug log
         transaction.update(productRef, { stock: Number(newStock) });
       }
-
       await addDoc(collection(db, 'orders'), orderData);
     });
-
     alert('Order placed successfully!');
     closeCheckoutModal();
   } catch (err) {
@@ -379,7 +345,6 @@ async function addProduct(e) {
   const stockStr = form['add-stock'].value.trim() || '0';
   const discountStr = form['add-discount'].value.trim() || '0';
   const priceStr = form['add-price'].value.trim();
-
   if (isNaN(Number(stockStr))) {
     alert('Stock must be a number.');
     return;
@@ -388,7 +353,6 @@ async function addProduct(e) {
     alert('Discount must be a number.');
     return;
   }
-
   const data = {
     name: form['add-name'].value.trim(),
     price: priceStr === 'TBA' ? 'TBA' : Number(priceStr),
@@ -400,17 +364,14 @@ async function addProduct(e) {
     availability: form['add-availability'].value,
     description: form['add-desc'].value.trim()
   };
-
   if (!data.name || (typeof data.price === 'undefined' || data.price === null) || !data.image || !data.category || !data.availability) {
     alert('Please fill required fields.');
     return;
   }
-
   if (data.price !== 'TBA' && isNaN(data.price)) {
     alert('Price must be a number or "TBA".');
     return;
   }
-
   try {
     await addDoc(collection(db, 'products'), data);
     form.reset();
@@ -426,10 +387,8 @@ async function addProduct(e) {
 async function renderDataTable() {
   const tbody = document.getElementById('products-body');
   if (!tbody) return;
-
   const products = await loadProducts();
   tbody.innerHTML = '';
-
   const cols = [
     { key: 'name', editable: true },
     { key: 'price', editable: true },
@@ -439,11 +398,9 @@ async function renderDataTable() {
     { key: 'stock', editable: true },
     { key: 'availability', editable: true }
   ];
-
   products.forEach(p => {
     // Main row
     const tr = document.createElement('tr');
-
     // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
@@ -455,7 +412,6 @@ async function renderDataTable() {
       e.target.textContent = isVisible ? '▼' : '▲';
     });
     tr.appendChild(tdToggle);
-
     // Main columns
     cols.forEach(col => {
       const td = document.createElement('td');
@@ -464,7 +420,6 @@ async function renderDataTable() {
       td.addEventListener('blur', async (e) => {
         let val = e.target.textContent.trim();
         if (val === (p[col.key] != null ? String(p[col.key]) : '')) return;
-
         let updateValue = val;
         if (col.key === 'price') {
           if (val !== 'TBA' && isNaN(Number(val))) {
@@ -487,7 +442,6 @@ async function renderDataTable() {
             return;
           }
         }
-
         await updateProductField(p.id, col.key, updateValue);
         if (col.key === 'stock' || col.key === 'price' || col.key === 'availability') {
           const cur = (await loadProducts()).find(x => x.id === p.id);
@@ -496,13 +450,11 @@ async function renderDataTable() {
       });
       tr.appendChild(td);
     });
-
     // Status column
     const tdStatus = document.createElement('td');
     tdStatus.dataset.status = '1';
     tdStatus.textContent = computeStatus(p);
     tr.appendChild(tdStatus);
-
     // Actions column
     const tdActions = document.createElement('td');
     const del = document.createElement('button');
@@ -513,16 +465,13 @@ async function renderDataTable() {
     });
     tdActions.appendChild(del);
     tr.appendChild(tdActions);
-
     tbody.appendChild(tr);
-
     // Details row for Image URL and Description
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
     detailsCell.colSpan = cols.length + 3; // Span across toggle, cols, status, and actions
     detailsCell.className = 'details-content';
-
     const imageCell = document.createElement('div');
     imageCell.contentEditable = true;
     imageCell.textContent = p.image != null ? p.image : '';
@@ -531,7 +480,6 @@ async function renderDataTable() {
       if (val === (p.image != null ? String(p.image) : '')) return;
       await updateProductField(p.id, 'image', val);
     });
-
     const descCell = document.createElement('div');
     descCell.contentEditable = true;
     descCell.textContent = p.description != null ? p.description : '';
@@ -540,7 +488,6 @@ async function renderDataTable() {
       if (val === (p.description != null ? String(p.description) : '')) return;
       await updateProductField(p.id, 'description', val);
     });
-
     detailsCell.innerHTML = `<strong>Image URL:</strong> `;
     detailsCell.appendChild(imageCell);
     detailsCell.innerHTML += `<br><strong>Description:</strong> `;
@@ -549,13 +496,11 @@ async function renderDataTable() {
     tbody.appendChild(detailsRow);
   });
 }
-
-function computeStatus(p) { 
+function computeStatus(p) {
   if (p.availability === 'Upcoming') return 'Upcoming';
   if (p.availability === 'Pre Order') return 'Pre Order';
-  return Number(p.stock) > 0 ? 'In Stock' : 'Out of Stock'; 
+  return Number(p.stock) > 0 ? 'In Stock' : 'Out of Stock';
 }
-
 async function updateProductField(id, field, value) {
   try {
     await updateDoc(doc(db, 'products', id), { [field]: value });
@@ -564,7 +509,6 @@ async function updateProductField(id, field, value) {
     alert('Error updating product: ' + err.message);
   }
 }
-
 async function deleteProductById(id) {
   try {
     await deleteDoc(doc(db, 'products', id));
@@ -579,13 +523,11 @@ async function deleteProductById(id) {
 async function renderOrdersTable() {
   const tbody = document.getElementById('orders-body');
   if (!tbody) return;
-
   const orders = await loadOrders();
   tbody.innerHTML = '';
-
   orders.forEach(o => {
     const tr = document.createElement('tr');
-    
+   
     // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
@@ -597,7 +539,6 @@ async function renderOrdersTable() {
       e.target.textContent = isVisible ? '▼' : '▲';
     });
     tr.appendChild(tdToggle);
-
     // Main columns
     const tds = [
       new Date(o.timeISO).toLocaleString(),
@@ -618,7 +559,6 @@ async function renderOrdersTable() {
       td.textContent = v;
       tr.appendChild(td);
     });
-
     // Status dropdown
     const tdStatus = document.createElement('td');
     const select = document.createElement('select');
@@ -642,20 +582,16 @@ async function renderOrdersTable() {
     });
     tdStatus.appendChild(select);
     tr.appendChild(tdStatus);
-
     tbody.appendChild(tr);
-
     // Details row for Unit Price
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
     detailsCell.colSpan = 14; // Span across toggle, main columns, and status
     detailsCell.className = 'details-content';
-
     const unitPriceCell = document.createElement('div');
     unitPriceCell.textContent = `Unit Price: ৳${Number(o.unitPrice).toFixed(2)}`;
     detailsCell.appendChild(unitPriceCell);
-
     detailsRow.appendChild(detailsCell);
     tbody.appendChild(detailsRow);
   });
@@ -701,13 +637,11 @@ function setupStatusForm() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Common
   displayProducts();
-
   // Admin page
   const loginPanel = document.getElementById('login-panel');
   const adminPanel = document.getElementById('admin-panel');
   const addForm = document.getElementById('add-product-form');
   if (addForm) addForm.addEventListener('submit', addProduct);
-
   if (loginPanel && adminPanel) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -722,7 +656,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminPanel.style.display = 'none';
       }
     });
-
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
@@ -740,7 +673,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
   }
-
   // Status page
   setupStatusForm();
 });
