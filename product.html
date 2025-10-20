@@ -42,8 +42,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Status - The Geek Shop</title>
-  <link rel="icon" type="image/x-icon" href="logo t.png"> 
+  <title>Product - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
@@ -73,77 +72,118 @@
     </nav>
   </header>
 
-  <div class="container">
-    <h1>Order Status</h1>
-    <form id="status-form" class="form">
-      <div>
-        <label>Transaction ID</label>
-        <input id="txn-id" required>
-      </div>
-      <button type="submit">Check Status</button>
-    </form>
+  <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div id="product-detail" class="product-detail card">
+      <div class="badges" id="product-badges"></div>
+      <div id="product-images" class="gallery grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      <h2 id="product-name" class="text-2xl font-bold mt-4"></h2>
+      <div id="product-color" class="muted mt-2"></div>
+      <div id="product-price" class="price text-lg font-semibold mt-2"></div>
+      <p id="product-desc" class="desc mt-4"></p>
+      <div id="product-order" class="mt-4"></div>
+    </div>
+  </main>
+
+  <div id="image-viewer" class="image-viewer">
+    <button id="close-viewer" class="close-viewer">&times;</button>
+    <img id="viewer-img" src="" alt="">
   </div>
 
-  <section class="notice-section" style="display: flex; gap: 20px; align-items: flex-start;">
-    <div class="notice-card card" style="flex: 1; text-align: left;">
-      <h3>📢 Important Notice</h3>
-      <p class="muted">
-        Please ensure all order details are entered correctly before confirmation.  
-        Double-check your <b>address</b>, <b>contact number</b>, and <b>product selection</b> to avoid delays.  
-        Orders once confirmed are subject to our Return and Pre-Order Policies.
-      </p>
+  <div id="checkout-modal" class="modal">
+    <div class="card modal-content">
+      <div class="modal-header">
+        <h2>Checkout</h2>
+        <button id="close-modal-btn">Close</button>
+      </div>
+      <form id="checkout-form" class="form">
+        <input type="hidden" id="co-product-id">
+        <div class="row">
+          <div>
+            <label>Product Name</label>
+            <input id="co-product-name" readonly>
+          </div>
+          <div>
+            <label>Color</label>
+            <input id="co-color" readonly>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Price (tk)</label>
+            <input id="co-price" readonly>
+            <input type="hidden" id="co-unit-price-raw">
+            <input type="hidden" id="co-available-stock">
+          </div>
+          <div>
+            <label>Quantity</label>
+            <input id="co-qty" type="number" min="1" value="1">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Delivery</label>
+            <input id="co-delivery" readonly>
+          </div>
+          <div>
+            <label>Total (tk)</label>
+            <input id="co-total" readonly>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Name</label>
+            <input id="co-name" required>
+          </div>
+          <div>
+            <label>Phone</label>
+            <input id="co-phone" type="tel" required>
+          </div>
+        </div>
+        <div>
+          <label>Address</label>
+          <textarea id="co-address" required></textarea>
+        </div>
+        <div class="row">
+          <div>
+            <label>Payment Method</label>
+            <select id="co-payment" required>
+              <option value="">Select</option>
+              <option value="Cash on Delivery">Cash on Delivery</option>
+              <option value="Bkash">Bkash</option>
+            </select>
+          </div>
+          <div>
+            <label>Pay to (Send money)</label>
+            <input id="co-payment-number" readonly>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Pay Now (tk)</label>
+            <input id="co-pay-now" readonly>
+          </div>
+          <div>
+            <label>Due Amount (tk)</label>
+            <input id="co-due-amount" readonly>
+          </div>
+        </div>
+        <div>
+          <label>Transaction ID</label>
+          <input id="co-txn">
+        </div>
+        <div>
+          <label>
+            <input type="checkbox" id="co-policy" required>
+            I agree to the <a href="status.html">Order Policy</a>
+          </label>
+        </div>
+        <div>
+          <p id="co-note" class="muted"></p>
+        </div>
+        <button id="place-order-btn" type="submit">Place Order</button>
+      </form>
     </div>
-
-    <div class="notice-card card" style="flex: 2; text-align: left;">
-      <h2>📦 Shipping & 🔄 Return Policy</h2>
-      <h3>1. Order Processing & Dispatch</h3>
-      <ul>
-        <li>All confirmed orders placed before <b>6:00 PM</b> are processed and dispatched the <b>same business day</b>.</li>
-        <li>Orders placed after 6:00 PM will be dispatched on the <b>next business day</b>.</li>
-      </ul>
-      <h3>2. Delivery Timeline</h3>
-      <ul>
-        <li>Estimated delivery time is <b>3–7 business days</b>, depending on location and courier efficiency.</li>
-        <li>Customers will be notified with tracking details once the order has been dispatched.</li>
-      </ul>
-      <h3>3. Pre-Order Policy</h3>
-      <ul>
-        <li>A <b>25% advance payment</b> is required to confirm any pre-order.</li>
-      </ul>
-      <h4>Important Note</h4>
-      <ul>
-        <li>Once a pre-order is confirmed, it <b>cannot be cancelled, refunded, or placed on hold</b>.</li>
-        <li>Customers must <b>verify the product upon delivery</b> in the presence of the courier.</li>
-      </ul>
-      <h3>4. Return Policy</h3>
-      <h4>4.1 Eligibility Window</h4>
-      <ul>
-        <li>Items can be returned within <b>7 days of purchase</b>.</li>
-        <li>The 7-day period is counted from the <b>date of delivery</b>.</li>
-      </ul>
-      <h4>4.2 Condition of Returned Items</h4>
-      <ul>
-        <li>Products must be in <b>original condition</b>, unused, with all packaging and accessories intact.</li>
-        <li>Items not meeting these conditions may be declined for return.</li>
-      </ul>
-      <h4>4.3 Valid Reasons for Return</h4>
-      <ul>
-        <li><b>Change of preference is not accepted</b> – Returns <b>cannot</b> be made for reasons like “didn’t like the product” or “changed my mind”.</li>
-        <li><b>Defective on Arrival</b> – Products may only be returned if <b>defective or damaged upon delivery</b>.</li>
-        <li><b>Pre-Orders</b> – Confirmed pre-orders <b>cannot be returned</b>, unless defective on arrival.</li>
-      </ul>
-    </div>
-
-    <div class="notice-card card" style="flex: 1; text-align: left;">
-      <h3>💬 Support</h3>
-      <p class="muted">
-        For assistance, please reach us via:<br><br>
-        ▪ Facebook: <a href="https://www.facebook.com/kawsara.tonmoy/" target="_blank">The Geek Shop</a><br>
-        ▪ Instagram: <a href="https://www.instagram.com/kawsara.tonmoy/" target="_blank">@thegeekshop</a><br>
-        ▪ WhatsApp: <a href="https://wa.me/01960788862" target="_blank">WhatsApp</a>
-      </p>
-    </div>
-  </section>
+  </div>
 
   <footer class="bg-gray-100 py-4 text-center text-sm">
     <div class="flex justify-center gap-4 mb-2">

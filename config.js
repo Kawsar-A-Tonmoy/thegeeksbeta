@@ -1,10 +1,11 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyC-8wLcmLaLs87ZZ2WjgnmmILiOfcnINg8",
-  authDomain: "geekshopbd.firebaseapp.com",
-  projectId: "geekshopbd",
-  storageBucket: "geekshopbd.firebasestorage.app",
-  messagingSenderId: "754381329378",
-  appId: "1:754381329378:web:09c3fe0d507a1749de5fbb"
+  apiKey: "AIzaSyAANaVQR8MbppZmhBkmZ2ptlzZEbwNMgAQ",
+  authDomain: "thebeta-bca97.firebaseapp.com",
+  projectId: "thebeta-bca97",
+  storageBucket: "thebeta-bca97.firebasestorage.app",
+  messagingSenderId: "430455154137",
+  appId: "1:430455154137:web:f305f234ae17a0017aa5c8",
+  measurementId: "G-JJEXR06M39"
 };
 
 

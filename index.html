@@ -1,138 +1,109 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Geek Shop</title>
+  <title>The Geek Shop - Home</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
   <header class="site-header">
-    <nav>
-      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
-      <div class="nav-links">
-        <a href="index.html">Products</a>
-        <a href="status.html">Order Status</a>
-        <a href="admin.html">Admin</a>
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+      <div class="logo">
+        <a href="index.html"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></a>
       </div>
+      <div class="nav-links flex gap-4">
+        <a href="index.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Home</a>
+        <a href="products.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Products</a>
+        <a href="cart.html" class="px-3 py-2 rounded-lg hover:bg-gray-200 relative">
+          Cart <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1"></span>
+        </a>
+        <a href="status.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Order Status</a>
+        <a href="admin.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Admin</a>
+      </div>
+      <form id="search-form" class="flex ml-4">
+        <input id="search-query" type="text" placeholder="Search products..." class="p-2 border border-r-0 rounded-l-lg focus:outline-none focus:border-blue-500">
+        <button type="submit" class="bg-blue-600 text-white p-2 rounded-r-lg">🔍</button>
+      </form>
     </nav>
   </header>
 
-  <main class="container">
-    <h1>Products</h1>
+  <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <h1 class="text-3xl font-bold mb-6">Welcome to The Geek Shop</h1>
 
-    <h2>New Added</h2>
-    <div id="new-products" class="product-list new-hot-list"></div>
+    <section id="may-interest" class="mb-12">
+      <h2 class="text-2xl font-semibold mb-4">You May Be Interested In</h2>
+      <div id="interest-products" class="product-list horizontal overflow-x-auto whitespace-nowrap"></div>
+    </section>
 
-    <h2>Hot Deals</h2>
-    <div id="hot-deals" class="product-list new-hot-list"></div>
-
-    <h2>All Products</h2>
-    <div id="all-products" class="product-list"></div>
+    <section id="categories">
+      <h2 class="text-2xl font-semibold mb-4">Categories</h2>
+      <div class="category-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card category-card cursor-pointer" data-cat="new"><h3 class="text-lg font-medium">New Added</h3></div>
+        <div class="card category-card cursor-pointer" data-cat="hot"><h3 class="text-lg font-medium">Hot Deals</h3></div>
+        <div class="card category-card cursor-pointer" data-cat="preorder"><h3 class="text-lg font-medium">Pre Orders</h3></div>
+        <div class="card category-card cursor-pointer" data-cat="upcoming"><h3 class="text-lg font-medium">Upcoming</h3></div>
+      </div>
+    </section>
   </main>
 
-  <div id="image-viewer" class="image-viewer">
-    <button id="close-viewer" class="close-viewer">&times;</button>
-    <img id="viewer-img" src="" alt="">
-  </div>
-
-  <div id="checkout-modal" class="modal">
-    <div class="card modal-content">
-      <div class="modal-header">
-        <h2>Checkout</h2>
-        <button id="close-modal-btn">Close</button>
-      </div>
-      <form id="checkout-form" class="form">
-        <input type="hidden" id="co-product-id">
-        <div class="row">
-          <div>
-            <label>Product Name</label>
-            <input id="co-product-name" readonly>
-          </div>
-          <div>
-            <label>Color</label>
-            <input id="co-color" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Price (tk)</label>
-            <input id="co-price" readonly>
-            <input type="hidden" id="co-unit-price-raw">
-            <input type="hidden" id="co-available-stock">
-          </div>
-          <div>
-            <label>Quantity</label>
-            <input id="co-qty" type="number" min="1" value="1">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Delivery</label>
-            <input id="co-delivery" readonly>
-          </div>
-          <div>
-            <label>Total (tk)</label>
-            <input id="co-total" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Name</label>
-            <input id="co-name" required>
-          </div>
-          <div>
-            <label>Phone</label>
-            <input id="co-phone" type="tel" required>
-          </div>
-        </div>
-        <div>
-          <label>Address</label>
-          <textarea id="co-address" required></textarea>
-        </div>
-        <div class="row">
-          <div>
-            <label>Payment Method</label>
-            <select id="co-payment" required>
-              <option value="">Select</option>
-              <option value="Cash on Delivery">Cash on Delivery</option>
-              <option value="Bkash">Bkash</option>
-            </select>
-          </div>
-          <div>
-            <label>Pay to (Send money)</label>
-            <input id="co-payment-number" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Pay Now (tk)</label>
-            <input id="co-pay-now" readonly>
-          </div>
-          <div>
-            <label>Due Amount (tk)</label>
-            <input id="co-due-amount" readonly>
-          </div>
-        </div>
-        <div>
-          <label>Transaction ID</label>
-          <input id="co-txn">
-        </div>
-        <div>
-          <label>
-            <input type="checkbox" id="co-policy" required>
-            I agree to the <a href="status.html">Order Policy</a>
-          </label>
-        </div>
-        <div>
-          <p id="co-note" class="muted"></p>
-        </div>
-        <button id="place-order-btn" type="submit">Place Order</button>
-      </form>
+  <footer class="bg-gray-100 py-4 text-center text-sm">
+    <div class="flex justify-center gap-4 mb-2">
+      <a href="https://www.facebook.com/thegeek.shop0" target="_blank">
+        <img src="facebook.png" alt="Facebook" class="w-6 h-6">
+      </a>
+      <a href="https://www.instagram.com/thegeekshop.0" target="_blank">
+        <img src="instagram.png" alt="Instagram" class="w-6 h-6">
+      </a>
+      <a href="https://wa.me/01960788862" target="_blank">
+        <img src="whatsapp.png" alt="WhatsApp" class="w-6 h-6">
+      </a>
     </div>
-  </div>
-
-  <footer>© All rights reserved by The Geek Shop</footer>
+    <p>&copy; All rights reserved by The Geek Shop</p>
+  </footer>
 </body>
 </html>
