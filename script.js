@@ -2,12 +2,10 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction, limit } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
 // Status explanations
 const statusExplanations = {
   Pending: 'Order received, waiting for processing.',
@@ -23,7 +21,6 @@ const statusColors = {
   Delivered: '#22c55e',
   Cancelled: '#ef4444'
 };
-
 // ====== UTIL ======
 async function loadProducts() {
   try {
@@ -34,7 +31,6 @@ async function loadProducts() {
     return [];
   }
 }
-
 async function loadOrders() {
   try {
     const q = query(collection(db, 'orders'), orderBy('timeISO', 'desc'));
@@ -45,11 +41,9 @@ async function loadOrders() {
     return [];
   }
 }
-
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 }
-
 function getSlug() {
   let slug = new URLSearchParams(location.search).get('slug');
   if (slug) return slug;
@@ -59,16 +53,13 @@ function getSlug() {
   }
   return slug;
 }
-
 function getCart() {
   return JSON.parse(localStorage.getItem('cart') || '[]');
 }
-
 function setCart(cart) {
   localStorage.setItem('cart', JSON.stringify(cart));
   updateCartCount();
 }
-
 function addToCart(id, qty = 1) {
   const cart = getCart();
   const item = cart.find(i => i.id === id);
@@ -79,13 +70,11 @@ function addToCart(id, qty = 1) {
   }
   setCart(cart);
 }
-
 function updateCartCount() {
   const count = getCart().reduce((sum, i) => sum + i.qty, 0);
   const el = document.getElementById('cart-count');
   if (el) el.textContent = count > 0 ? count : '';
 }
-
 // ====== HOME PAGE ======
 async function displayHome() {
   const interest = document.getElementById('interest-products');
@@ -97,10 +86,10 @@ async function displayHome() {
   const categoryCards = document.getElementById('category-cards');
   if (categoryCards) {
     const categories = [
-      { name: 'Gadgets', slug: 'gadgets', desc: 'Latest tech gadgets' },
-      { name: 'Apparel', slug: 'apparel', desc: 'Geeky clothing' },
-      { name: 'Accessories', slug: 'accessories', desc: 'Cool accessories' },
-      { name: 'Collectibles', slug: 'collectibles', desc: 'Collectible items' }
+      { name: 'Keycaps', slug: 'keycaps', desc: 'Custom keycaps for keyboards' },
+      { name: 'Keyboards and Bare Bones', slug: 'keyboards', desc: 'Mechanical keyboards and kits' },
+      { name: 'Switches', slug: 'switches', desc: 'Keyboard switches' },
+      { name: 'Collectibles', slug: 'collectibles', desc: 'Geeky collectible items' }
     ];
     categories.forEach(cat => {
       const card = document.createElement('div');
@@ -108,13 +97,14 @@ async function displayHome() {
       card.innerHTML = `
         <h3>${cat.name}</h3>
         <p>${cat.desc}</p>
-        <a href="products.html?category=${cat.slug}">Browse</a>
       `;
+      card.addEventListener('click', () => {
+        location.href = `products.html?category=${cat.slug}`;
+      });
       categoryCards.appendChild(card);
     });
   }
 }
-
 // ====== PRODUCTS PAGE ======
 async function displayProducts() {
   const allProducts = document.getElementById('all-products');
@@ -137,7 +127,6 @@ async function displayProducts() {
   allProducts.innerHTML = '';
   products.forEach(p => allProducts.appendChild(createProductCard(p)));
 }
-
 // ====== PRODUCT DETAILS PAGE ======
 async function displayProduct() {
   const details = document.getElementById('product-details');
@@ -196,7 +185,7 @@ async function displayProduct() {
       <p class="desc">${p.description || ''}</p>
       <div class="actions">
         <input type="number" id="add-qty" min="1" value="1" ${isOOS || isUpcoming ? 'disabled' : ''}>
-        <button id="add-cart-btn" ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''}>Add to Cart</button>
+        <button id="add-cart-btn" ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''}><i class="fa">&#xf07a;</i> Add to Cart</button>
         <button id="buy-now-btn" ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''}>Buy Now</button>
       </div>
     </div>
@@ -221,12 +210,12 @@ async function displayProduct() {
   });
   bindCheckoutModal();
 }
-
 // ====== CART PAGE ======
 async function displayCart() {
   const itemsContainer = document.getElementById('cart-items');
   const totalAmount = document.getElementById('total-amount');
   const checkoutBtn = document.getElementById('checkout-btn');
+  const orderStatus = document.getElementById('order-status');
   if (!itemsContainer) return;
   const cart = getCart();
   if (!cart.length) {
@@ -285,9 +274,11 @@ async function displayCart() {
   });
   if (totalAmount) totalAmount.textContent = total.toFixed(2);
   if (checkoutBtn) checkoutBtn.disabled = total === 0;
-  if (checkoutBtn) checkoutBtn.addEventListener('click', openCheckoutModal);
+  if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
+    openCheckoutModal(true);
+  });
+  if (orderStatus) orderStatus.style.display = 'none';
 }
-
 // ====== PRODUCT CARD ======
 function createProductCard(p) {
   const isUpcoming = p.availability === 'Upcoming';
@@ -313,18 +304,26 @@ function createProductCard(p) {
       ${isUpcoming ? `TBA` : `${hasDiscount ? `<s>৳${price.toFixed(2)}</s> ` : ``}৳${finalPrice.toFixed(2)}`}
     </div>
     <div class="order-row">
-      <a href="product.html?slug=${p.slug}" class="secondary">View Details</a>
-      <button ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="add-cart-btn">Add to Cart</button>
+      <button ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="add-cart-btn"><i class="fa">&#xf07a;</i> Add to Cart</button>
+      <button ${isOOS && !isPreOrder || isUpcoming ? 'disabled' : ''} data-id="${p.id}" class="order-btn">Order</button>
     </div>
   `;
+  card.addEventListener('click', () => {
+    location.href = `product.html?slug=${p.slug}`;
+  });
   card.querySelector('.add-cart-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
     const id = e.currentTarget.getAttribute('data-id');
     addToCart(id);
     alert('Added to cart!');
   });
+  card.querySelector('.order-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const id = e.currentTarget.getAttribute('data-id');
+    openCheckoutModal(false, id);
+  });
   return card;
 }
-
 // ====== DELIVERY CHARGE LOGIC ======
 function calculateDeliveryFee(address) {
   const lowerAddr = address.toLowerCase();
@@ -335,25 +334,39 @@ function calculateDeliveryFee(address) {
   }
   return 150;
 }
-
 // ====== CHECKOUT MODAL FLOW ======
 function bindCheckoutModal() {
   const modal = document.getElementById('checkout-modal');
-  if (!modal) return;
-  document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
-  const form = document.getElementById('checkout-form');
-  form.addEventListener('submit', submitCheckoutOrder);
-  document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
-  document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
+  if (modal) {
+    document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
+    const form = document.getElementById('checkout-form');
+    form.addEventListener('submit', (e) => submitCheckoutOrder(e, location.pathname.includes('cart.html')));
+    document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
+    document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
+  }
 }
-
-async function openCheckoutModal() {
-  const cart = getCart();
-  if (!cart.length) return;
-  const products = await Promise.all(cart.map(async item => {
-    const docSnap = await getDoc(doc(db, 'products', item.id));
-    return { ...docSnap.data(), id: docSnap.id, qty: item.qty };
-  }));
+async function openCheckoutModal(isCart = false, productId = null) {
+  const modal = document.getElementById('checkout-modal');
+  if (!modal) return;
+  let products = [];
+  if (isCart) {
+    const cart = getCart();
+    if (!cart.length) return;
+    products = await Promise.all(cart.map(async item => {
+      const docSnap = await getDoc(doc(db, 'products', item.id));
+      return { ...docSnap.data(), id: docSnap.id, qty: item.qty };
+    }));
+  } else if (productId) {
+    const docSnap = await getDoc(doc(db, 'products', productId));
+    if (docSnap.exists()) {
+      products = [{ ...docSnap.data(), id: productId, qty: 1 }];
+    } else {
+      alert('Product not found');
+      return;
+    }
+  } else {
+    return;
+  }
   const isPreOrder = products.some(p => p.availability === 'Pre Order');
   const subtotal = products.reduce((sum, p) => {
     const price = Number(p.price) || 0;
@@ -384,15 +397,13 @@ async function openCheckoutModal() {
   payment.value = isPreOrder ? 'Bkash' : '';
   payment.disabled = isPreOrder;
   handlePaymentChange({ target: payment }, subtotal, delivery, isPreOrder);
-  const modal = document.getElementById('checkout-modal');
   modal.classList.add('show');
+  modal.dataset.isCart = isCart ? 'true' : 'false';
 }
-
 function closeCheckoutModal() {
   const modal = document.getElementById('checkout-modal');
   modal.classList.remove('show');
 }
-
 function updateDeliveryCharge() {
   const address = document.getElementById('co-address').value.trim();
   const deliveryFee = calculateDeliveryFee(address);
@@ -403,7 +414,6 @@ function updateDeliveryCharge() {
   const subtotal = Number(document.getElementById('co-total').value) - Number(document.getElementById('co-delivery').dataset.fee); // approximate
   handlePaymentChange({ target: payment }, subtotal, deliveryFee);
 }
-
 function handlePaymentChange(e, subtotal = 0, delivery = DELIVERY_FEE, isPreOrder = false) {
   const method = e.target.value;
   const total = subtotal + delivery;
@@ -435,11 +445,8 @@ function handlePaymentChange(e, subtotal = 0, delivery = DELIVERY_FEE, isPreOrde
   }
   document.getElementById('co-total').value = total.toFixed(2);
 }
-
-async function submitCheckoutOrder(e) {
+async function submitCheckoutOrder(e, isCart = false) {
   e.preventDefault();
-  const cart = getCart();
-  if (!cart.length) return alert('Cart is empty');
   const name = document.getElementById('co-name').value.trim();
   const phone = document.getElementById('co-phone').value.trim();
   const address = document.getElementById('co-address').value.trim();
@@ -449,6 +456,7 @@ async function submitCheckoutOrder(e) {
   if (!name || !phone || !address || !payment || !policy) return alert('Please fill all required fields');
   if (payment === 'Bkash' && !txn) return alert('Transaction ID required for Bkash');
   const deliveryFee = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
+  const cart = getCart();
   try {
     await runTransaction(db, async (transaction) => {
       const products = await Promise.all(cart.map(async item => {
@@ -496,139 +504,27 @@ async function submitCheckoutOrder(e) {
     });
     setCart([]);
     closeCheckoutModal();
+    if (isCart) {
+      document.getElementById('cart-items').innerHTML = '';
+      document.getElementById('total-amount').textContent = '0.00';
+      document.getElementById('checkout-btn').disabled = true;
+      document.getElementById('order-status').style.display = 'block';
+    }
     alert('Order placed successfully!');
   } catch (err) {
     console.error('Order failed:', err);
     alert('Order failed: ' + err.message);
   }
 }
-
-// ====== ORDER STATUS PAGE ======
-async function checkOrderStatus(e) {
-  e.preventDefault();
-  const txnId = document.getElementById('txn-id').value.trim();
-  if (!txnId) {
-    alert('Please enter a Transaction ID');
-    return;
-  }
-  const container = document.getElementById('status-form').parentElement;
-  try {
-    const q = query(collection(db, 'orders'), where('transactionId', '==', txnId));
-    const snap = await getDocs(q);
-    if (snap.empty) {
-      container.innerHTML = '<h2>Order not found</h2>';
-      return;
-    }
-    const order = snap.docs[0].data();
-    const status = order.status || 'Pending';
-    const explanation = statusExplanations[status] || 'Unknown status';
-    const color = statusColors[status] || '#000000';
-    const products = order.products.map(p => `${p.name} (${p.color || '-'}) x ${p.quantity}`).join('<br>');
-    container.innerHTML = `
-      <h2>Order Status</h2>
-      <div class="card">
-        <h3 style="color: ${color}">${status}</h3>
-        <p>${explanation}</p>
-        <p><strong>Products:</strong><br>${products}</p>
-        <p><strong>Customer:</strong> ${order.customerName}</p>
-        <p><strong>Phone:</strong> ${order.phone}</p>
-        <p><strong>Address:</strong> ${order.address}</p>
-        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-        <p><strong>Transaction ID:</strong> ${order.transactionId}</p>
-        <p><strong>Delivery Fee:</strong> ৳${order.deliveryFee.toFixed(2)}</p>
-        <p><strong>Paid:</strong> ৳${order.paid.toFixed(2)}</p>
-        <p><strong>Due:</strong> ৳${order.due.toFixed(2)}</p>
-        <p><strong>Order Time:</strong> ${new Date(order.timeISO).toLocaleString()}</p>
-      </div>
-    `;
-  } catch (err) {
-    console.error('Error checking status:', err);
-    alert('Error checking order status: ' + err.message);
-  }
-}
-
-// ====== ADMIN: AUTH ======
-function logoutAdmin() {
-  signOut(auth).then(() => {
-    document.getElementById('admin-panel').style.display = 'none';
-    document.getElementById('login-panel').style.display = 'block';
-  }).catch(err => {
-    console.error('Logout failed:', err);
-    alert('Logout failed: ' + err.message);
-  });
-}
-
-async function adminLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById('admin-email').value.trim();
-  const pass = document.getElementById('admin-pass').value;
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    document.getElementById('login-panel').style.display = 'none';
-    document.getElementById('admin-panel').style.display = 'block';
-    renderDataTable();
-    renderOrdersTable();
-  } catch (err) {
-    console.error('Login failed:', err);
-    alert('Login failed: ' + err.message);
-  }
-}
-
-// ====== ADMIN: ADD PRODUCT ======
-async function addProduct(e) {
-  e.preventDefault();
-  const name = document.getElementById('add-name').value.trim();
-  const slug = document.getElementById('add-slug').value.trim();
-  const price = document.getElementById('add-price').value.trim();
-  const discount = Number(document.getElementById('add-discount').value) || 0;
-  const imagesStr = document.getElementById('add-images').value.trim();
-  const images = imagesStr.split(',').map(s => s.trim()).filter(s => s);
-  const category = document.getElementById('add-category').value;
-  const color = document.getElementById('add-color').value.trim();
-  const stock = Number(document.getElementById('add-stock').value) || 0;
-  const availability = document.getElementById('add-availability').value;
-  const desc = document.getElementById('add-desc').value.trim();
-  if (!name || !slug || !images.length || !category || !availability) return alert('Please fill required fields');
-  try {
-    await addDoc(collection(db, 'products'), {
-      name,
-      slug,
-      price: price === 'TBA' ? 'TBA' : Number(price),
-      discount,
-      images,
-      category,
-      color,
-      stock,
-      availability,
-      description: desc
-    });
-    document.getElementById('add-product-form').reset();
-    renderDataTable();
-  } catch (err) {
-    console.error('Error adding product:', err);
-    alert('Error adding product: ' + err.message);
-  }
-}
-
 // ====== ADMIN: PRODUCTS TABLE ======
 async function renderDataTable() {
   const tbody = document.getElementById('products-body');
   if (!tbody) return;
   const products = await loadProducts();
   tbody.innerHTML = '';
-  const cols = [
-    { key: 'name' },
-    { key: 'slug' },
-    { key: 'price' },
-    { key: 'category' },
-    { key: 'color' },
-    { key: 'discount' },
-    { key: 'stock' },
-    { key: 'availability' }
-  ];
   products.forEach(p => {
     const tr = document.createElement('tr');
-    // Toggle button cell
+    // Toggle
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
@@ -639,99 +535,83 @@ async function renderDataTable() {
       e.target.textContent = isVisible ? '▼' : '▲';
     });
     tr.appendChild(tdToggle);
-    // Main columns
+    // Image
+    const tdImage = document.createElement('td');
+    tdImage.innerHTML = `<img src="${p.images ? p.images[0] : ''}" alt="${p.name}">`;
+    tr.appendChild(tdImage);
+    // Other columns
+    const cols = ['name', 'slug', 'price', 'category', 'color', 'discount', 'stock', 'availability'];
     cols.forEach(col => {
       const td = document.createElement('td');
       td.contentEditable = true;
-      td.textContent = p[col.key] != null ? String(p[col.key]) : '';
+      td.textContent = p[col] || '';
       td.addEventListener('blur', async (e) => {
         const val = e.target.textContent.trim();
-        if (val === (p[col.key] != null ? String(p[col.key]) : '')) return;
-        let updateValue = val;
-        if (col.key === 'price') {
-          if (val !== 'TBA' && isNaN(Number(val))) {
-            alert('Price must be a number or "TBA".');
-            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
-            return;
-          }
-          updateValue = val === 'TBA' ? 'TBA' : Number(val);
-        } else if (col.key === 'discount' || col.key === 'stock') {
-          if (isNaN(Number(val))) {
-            alert(`${col.key.charAt(0).toUpperCase() + col.key.slice(1)} must be a number.`);
-            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
-            return;
-          }
-          updateValue = Number(val);
-        } else if (col.key === 'availability') {
-          if (!['Ready', 'Pre Order', 'Upcoming'].includes(val)) {
-            alert('Availability must be Ready, Pre Order, or Upcoming.');
-            e.target.textContent = p[col.key] != null ? String(p[col.key]) : '';
-            return;
-          }
-        }
-        await updateProductField(p.id, col.key, updateValue);
-        if (col.key === 'stock' || col.key === 'price' || col.key === 'availability') {
-          const cur = (await loadProducts()).find(x => x.id === p.id);
-          tr.querySelector('td[data-status="1"]').textContent = computeStatus(cur);
+        if (val !== p[col]) {
+          await updateProductField(p.id, col, val);
+          renderDataTable();
         }
       });
       tr.appendChild(td);
     });
-    // Status column
+    // Status
     const tdStatus = document.createElement('td');
-    tdStatus.dataset.status = '1';
     tdStatus.textContent = computeStatus(p);
     tr.appendChild(tdStatus);
-    // Actions column
+    // Actions
     const tdActions = document.createElement('td');
-    const del = document.createElement('button');
-    del.className = 'danger';
-    del.textContent = 'Delete';
-    del.addEventListener('click', async () => {
-      if (confirm(`Delete "${p.name}"?`)) await deleteProductById(p.id);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'danger';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', async () => {
+      if (confirm('Delete product?')) {
+        await deleteDoc(doc(db, 'products', p.id));
+        renderDataTable();
+      }
     });
-    tdActions.appendChild(del);
+    tdActions.appendChild(delBtn);
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
-    // Details row for Images and Description
+    // Details row
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
-    const detailsCell = document.createElement('td');
-    detailsCell.colSpan = cols.length + 3; // Account for toggle, status, actions
-    detailsCell.innerHTML = `
-      <div class="details-content">
-        <strong>Images:</strong> ${p.images ? p.images.join(', ') : '-'}<br>
-        <strong>Description:</strong> ${p.description || '-'}
-      </div>
+    const detailsTd = document.createElement('td');
+    detailsTd.colSpan = 12;
+    detailsTd.innerHTML = `
+      <div>Images: <input type="text" value="${p.images ? p.images.join(', ') : ''}" style="width: 100%;"></div>
+      <div>Description: <textarea style="width: 100%;">${p.description || ''}</textarea></div>
     `;
-    detailsRow.appendChild(detailsCell);
+    detailsTd.querySelector('input').addEventListener('blur', async (e) => {
+      const newImages = e.target.value.split(',').map(img => img.trim());
+      await updateProductField(p.id, 'images', newImages);
+    });
+    detailsTd.querySelector('textarea').addEventListener('blur', async (e) => {
+      await updateProductField(p.id, 'description', e.target.value.trim());
+    });
+    detailsRow.appendChild(detailsTd);
     tbody.appendChild(detailsRow);
   });
 }
-
+function computeStatus(p) {
+  if (p.availability === 'Upcoming') return 'Upcoming';
+  if (p.availability === 'Pre Order') return 'Pre Order';
+  return Number(p.stock) > 0 ? 'In Stock' : 'Out of Stock';
+}
+async function updateProductField(id, field, value) {
+  try {
+    await updateDoc(doc(db, 'products', id), { [field]: value });
+  } catch (err) {
+    console.error('Error updating product:', err);
+  }
+}
 // ====== ADMIN: ORDERS TABLE ======
 async function renderOrdersTable() {
   const tbody = document.getElementById('orders-body');
   if (!tbody) return;
   const orders = await loadOrders();
   tbody.innerHTML = '';
-  const cols = [
-    { key: 'timeISO', display: o => new Date(o.timeISO).toLocaleString() },
-    { key: 'products', display: o => o.products.map(p => p.name).join(', ') },
-    { key: 'products', display: o => o.products.map(p => p.color || '-').join(', ') },
-    { key: 'products', display: o => o.products.map(p => p.quantity).join(', ') },
-    { key: 'deliveryFee', display: o => `৳${o.deliveryFee.toFixed(2)}` },
-    { key: 'paid', display: o => `৳${o.paid.toFixed(2)}` },
-    { key: 'due', display: o => `৳${o.due.toFixed(2)}` },
-    { key: 'customerName' },
-    { key: 'phone' },
-    { key: 'address' },
-    { key: 'paymentMethod' },
-    { key: 'transactionId' }
-  ];
   orders.forEach(o => {
     const tr = document.createElement('tr');
-    // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
@@ -742,159 +622,138 @@ async function renderOrdersTable() {
       e.target.textContent = isVisible ? '▼' : '▲';
     });
     tr.appendChild(tdToggle);
-    // Main columns
-    cols.forEach(col => {
+    const tds = [
+      new Date(o.timeISO).toLocaleString(),
+      o.productName,
+      o.color,
+      o.quantity,
+      '৳' + Number(o.deliveryFee).toFixed(2),
+      '৳' + Number(o.paid).toFixed(2),
+      '৳' + Number(o.due).toFixed(2),
+      o.customerName,
+      o.phone,
+      o.address,
+      o.paymentMethod,
+      o.transactionId
+    ];
+    tds.forEach(v => {
       const td = document.createElement('td');
-      td.textContent = col.display ? col.display(o) : o[col.key];
+      td.textContent = v;
       tr.appendChild(td);
     });
-    // Status column
     const tdStatus = document.createElement('td');
-    const statusSelect = document.createElement('select');
-    ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(status => {
-      const opt = document.createElement('option');
-      opt.value = status;
-      opt.textContent = status;
-      if (o.status === status) opt.selected = true;
-      statusSelect.appendChild(opt);
+    const select = document.createElement('select');
+    ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.text = opt;
+      if (o.status === opt) option.selected = true;
+      select.appendChild(option);
     });
-    statusSelect.addEventListener('change', async (e) => {
-      await updateDoc(doc(db, 'orders', o.id), { status: e.target.value });
-      alert('Order status updated');
+    select.style.backgroundColor = statusColors[o.status || 'Pending'];
+    select.addEventListener('change', async (e) => {
+      try {
+        const newStatus = e.target.value;
+        await updateDoc(doc(db, 'orders', o.id), { status: newStatus });
+        select.style.backgroundColor = statusColors[newStatus];
+      } catch (err) {
+        console.error('Error updating order status:', err);
+        alert('Error updating order status: ' + err.message);
+      }
     });
-    tdStatus.appendChild(statusSelect);
+    tdStatus.appendChild(select);
     tr.appendChild(tdStatus);
     tbody.appendChild(tr);
-    // Details row
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
-    detailsCell.colSpan = cols.length + 2; // Account for toggle and status
-    const productsList = o.products.map(p => `${p.name} (${p.color || '-'}) x ${p.quantity} @ ৳${p.unitPrice.toFixed(2)}`).join('<br>');
-    detailsCell.innerHTML = `
-      <div class="details-content">
-        <strong>Products:</strong><br>${productsList}<br>
-        <strong>Status Explanation:</strong> ${statusExplanations[o.status] || 'Unknown'}<br>
-        <strong>Order ID:</strong> ${o.id}
-      </div>
-    `;
+    detailsCell.colSpan = 14;
+    detailsCell.className = 'details-content';
+    const unitPriceCell = document.createElement('div');
+    unitPriceCell.textContent = `Unit Price: ৳${Number(o.unitPrice).toFixed(2)}`;
+    detailsCell.appendChild(unitPriceCell);
     detailsRow.appendChild(detailsCell);
     tbody.appendChild(detailsRow);
   });
 }
-
-// ====== ADMIN: HELPER FUNCTIONS ======
-async function updateProductField(id, key, value) {
+// ====== AUTH ======
+function logoutAdmin() {
   try {
-    await updateDoc(doc(db, 'products', id), { [key]: value });
-    console.log(`Updated ${key} for product ${id}`);
+    signOut(auth);
+    console.log('Logged out successfully');
   } catch (err) {
-    console.error('Error updating product:', err);
-    alert('Error updating product: ' + err.message);
+    console.error('Logout error:', err);
+    alert('Error logging out: ' + err.message);
   }
 }
-
-async function deleteProductById(id) {
-  try {
-    await deleteDoc(doc(db, 'products', id));
-    renderDataTable();
-    alert('Product deleted');
-  } catch (err) {
-    console.error('Error deleting product:', err);
-    alert('Error deleting product: ' + err.message);
-  }
-}
-
-function computeStatus(p) {
-  if (p.availability === 'Upcoming') return 'Upcoming';
-  if (p.availability === 'Pre Order') return 'Pre Order';
-  if (Number(p.stock) <= 0) return 'Out of Stock';
-  if (p.price === 'TBA') return 'Price TBD';
-  return 'Available';
-}
-
-// ====== IMAGE VIEWER ======
-function bindImageViewer() {
-  document.querySelectorAll('.product-card img, .cart-item img, .gallery img:not(.thumb)').forEach(img => {
-    img.addEventListener('click', () => {
-      const viewer = document.getElementById('image-viewer');
-      const viewerImg = document.getElementById('viewer-img');
-      viewerImg.src = img.src;
-      viewer.classList.add('show');
-    });
+// ====== ORDER STATUS PAGE ======
+function setupStatusForm() {
+  const form = document.getElementById('status-form');
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const txn = document.getElementById('txn-id').value.trim();
+    if (!txn) return;
+    try {
+      const q = query(collection(db, 'orders'), where('transactionId', '==', txn));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        alert('Order not found.');
+        return;
+      }
+      const order = snapshot.docs[0].data();
+      const status = order.status;
+      alert(`Status: ${status}\n${statusExplanations[status] || 'Unknown status.'}`);
+    } catch (err) {
+      console.error('Error fetching status:', err);
+      alert('Error fetching status: ' + err.message);
+    }
   });
-  const viewer = document.getElementById('image-viewer');
-  if (viewer) {
-    document.getElementById('close-viewer').addEventListener('click', () => {
-      viewer.classList.remove('show');
-      viewer.classList.remove('zoomed');
-    });
-    viewer.addEventListener('click', (e) => {
-      if (e.target === viewer) {
-        viewer.classList.remove('show');
-        viewer.classList.remove('zoomed');
-      } else if (e.target.id === 'viewer-img') {
-        viewer.classList.toggle('zoomed');
-      }
-    });
-  }
 }
-
-// ====== SEARCH FUNCTIONALITY ======
-function bindSearch() {
-  const searchBtn = document.getElementById('search-btn');
-  const searchInput = document.getElementById('search-input');
-  if (searchBtn && searchInput) {
-    searchBtn.addEventListener('click', () => {
-      const query = searchInput.value.trim();
-      if (query) {
-        location.href = `products.html?search=${encodeURIComponent(query)}`;
-      }
-    });
-    searchInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        const query = searchInput.value.trim();
-        if (query) {
-          location.href = `products.html?search=${encodeURIComponent(query)}`;
-        }
-      }
-    });
-  }
-}
-
-// ====== INITIALIZATION ======
-function init() {
-  updateCartCount();
-  if (location.pathname.includes('index.html') || location.pathname === '/') {
-    displayHome();
-  } else if (location.pathname.includes('products.html')) {
-    displayProducts();
-  } else if (location.pathname.includes('product.html')) {
-    displayProduct();
-  } else if (location.pathname.includes('cart.html')) {
-    displayCart();
-  } else if (location.pathname.includes('status.html')) {
-    const form = document.getElementById('status-form');
-    if (form) form.addEventListener('submit', checkOrderStatus);
-  } else if (location.pathname.includes('admin.html')) {
-    onAuthStateChanged(auth, user => {
+// ====== INIT ======
+document.addEventListener('DOMContentLoaded', async () => {
+  // Common
+  displayHome();
+  displayProducts();
+  displayProduct();
+  displayCart();
+  bindCheckoutModal();
+  // Admin page
+  const loginPanel = document.getElementById('login-panel');
+  const adminPanel = document.getElementById('admin-panel');
+  const addForm = document.getElementById('add-product-form');
+  if (addForm) addForm.addEventListener('submit', addProduct);
+  if (loginPanel && adminPanel) {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
-        document.getElementById('login-panel').style.display = 'none';
-        document.getElementById('admin-panel').style.display = 'block';
-        renderDataTable();
-        renderOrdersTable();
+        console.log('User logged in:', user.email);
+        loginPanel.style.display = 'none';
+        adminPanel.style.display = 'block';
+        await renderDataTable();
+        await renderOrdersTable();
       } else {
-        document.getElementById('login-panel').style.display = 'block';
-        document.getElementById('admin-panel').style.display = 'none';
+        console.log('No user logged in');
+        loginPanel.style.display = 'block';
+        adminPanel.style.display = 'none';
       }
     });
     const loginForm = document.getElementById('login-form');
-    if (loginForm) loginForm.addEventListener('submit', adminLogin);
-    const addForm = document.getElementById('add-product-form');
-    if (addForm) addForm.addEventListener('submit', addProduct);
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('admin-email').value;
+        const pass = document.getElementById('admin-pass').value;
+        console.log('Attempting login with email:', email);
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          console.log('Login successful');
+        } catch (err) {
+          console.error('Login failed:', err);
+          alert('Login failed: ' + err.message);
+        }
+      });
+    }
   }
-  bindImageViewer();
-  bindSearch();
-}
-
-document.addEventListener('DOMContentLoaded', init);
+  // Status page
+  setupStatusForm();
+});

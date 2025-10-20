@@ -44,6 +44,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cart - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <script src="script.js" type="module"></script>
 </head>
 <body>
@@ -71,6 +72,10 @@
       <h3>Total: ৳<span id="total-amount">0.00</span></h3>
     </div>
     <button id="checkout-btn" class="order-btn" disabled>Proceed to Checkout</button>
+    <div id="order-status" style="display: none; text-align: center; margin-top: 20px;">
+      <h2>Order Placed Successfully!</h2>
+      <p>Your order has been processed. Check your order status for details.</p>
+    </div>
   </main>
 
   <div id="checkout-modal" class="modal">
