@@ -42,49 +42,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product - The Geek Shop</title>
+  <title>Product Details - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
   <header class="site-header">
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-      <div class="logo">
-        <a href="index.html"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></a>
+    <nav>
+      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="cart.html">Cart <span id="cart-count"></span></a>
+        <a href="status.html">Order Status</a>
+        <a href="admin.html">Admin</a>
       </div>
-      <div class="nav-links flex gap-4">
-        <a href="index.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Home</a>
-        <a href="products.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Products</a>
-        <a href="cart.html" class="px-3 py-2 rounded-lg hover:bg-gray-200 relative">
-          Cart <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1"></span>
-        </a>
-        <a href="status.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Order Status</a>
-        <span id="user-auth">
-          <a href="login.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Login</a>
-        </span>
-        <a href="admin.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Admin</a>
+      <div class="search-bar">
+        <input id="search-input" type="search" placeholder="Search products...">
+        <button id="search-btn">🔍</button>
       </div>
-      <form id="search-form" class="flex ml-4">
-        <input id="search-query" type="text" placeholder="Search products..." class="p-2 border border-r-0 rounded-l-lg focus:outline-none focus:border-blue-500">
-        <button type="submit" class="bg-blue-600 text-white p-2 rounded-r-lg">🔍</button>
-      </form>
     </nav>
   </header>
 
-  <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div id="product-detail" class="product-detail card">
-      <div class="badges" id="product-badges"></div>
-      <div id="product-images" class="gallery grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-      <h2 id="product-name" class="text-2xl font-bold mt-4"></h2>
-      <div id="product-color" class="muted mt-2"></div>
-      <div id="product-price" class="price text-lg font-semibold mt-2"></div>
-      <p id="product-desc" class="desc mt-4"></p>
-      <div id="product-order" class="mt-4"></div>
-    </div>
+  <main class="container">
+    <div id="product-details" class="card product-details"></div>
   </main>
 
   <div id="image-viewer" class="image-viewer">
@@ -98,30 +79,8 @@
         <h2>Checkout</h2>
         <button id="close-modal-btn">Close</button>
       </div>
+      <div id="co-products-list"></div>
       <form id="checkout-form" class="form">
-        <input type="hidden" id="co-product-id">
-        <div class="row">
-          <div>
-            <label>Product Name</label>
-            <input id="co-product-name" readonly>
-          </div>
-          <div>
-            <label>Color</label>
-            <input id="co-color" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Price (tk)</label>
-            <input id="co-price" readonly>
-            <input type="hidden" id="co-unit-price-raw">
-            <input type="hidden" id="co-available-stock">
-          </div>
-          <div>
-            <label>Quantity</label>
-            <input id="co-qty" type="number" min="1" value="1">
-          </div>
-        </div>
         <div class="row">
           <div>
             <label>Delivery</label>
@@ -188,19 +147,6 @@
     </div>
   </div>
 
-  <footer class="bg-gray-100 py-4 text-center text-sm">
-    <div class="flex justify-center gap-4 mb-2">
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank">
-        <img src="facebook.png" alt="Facebook" class="w-6 h-6">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank">
-        <img src="instagram.png" alt="Instagram" class="w-6 h-6">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank">
-        <img src="whatsapp.png" alt="WhatsApp" class="w-6 h-6">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
+  <footer>© All rights reserved by The Geek Shop</footer>
 </body>
 </html>

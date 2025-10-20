@@ -42,71 +42,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Geek Shop - Home</title>
+  <title>The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
   <header class="site-header">
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-      <div class="logo">
-        <a href="index.html"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></a>
+    <nav>
+      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="cart.html">Cart <span id="cart-count"></span></a>
+        <a href="status.html">Order Status</a>
+        <a href="admin.html">Admin</a>
       </div>
-      <div class="nav-links flex gap-4">
-        <a href="index.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Home</a>
-        <a href="products.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Products</a>
-        <a href="cart.html" class="px-3 py-2 rounded-lg hover:bg-gray-200 relative">
-          Cart <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1"></span>
-        </a>
-        <a href="status.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Order Status</a>
-        <span id="user-auth">
-          <a href="login.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Login</a>
-        </span>
-        <a href="admin.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Admin</a>
+      <div class="search-bar">
+        <input id="search-input" type="search" placeholder="Search products...">
+        <button id="search-btn">🔍</button>
       </div>
-      <form id="search-form" class="flex ml-4">
-        <input id="search-query" type="text" placeholder="Search products..." class="p-2 border border-r-0 rounded-l-lg focus:outline-none focus:border-blue-500">
-        <button type="submit" class="bg-blue-600 text-white p-2 rounded-r-lg">🔍</button>
-      </form>
     </nav>
   </header>
 
-  <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <h1 class="text-3xl font-bold mb-6">Welcome to The Geek Shop</h1>
+  <main class="container">
+    <h2>May Interest You</h2>
+    <div id="interest-products" class="product-list new-hot-list"></div>
 
-    <section id="may-interest" class="mb-12">
-      <h2 class="text-2xl font-semibold mb-4">You May Be Interested In</h2>
-      <div id="interest-products" class="product-list horizontal overflow-x-auto whitespace-nowrap"></div>
-    </section>
-
-    <section id="categories">
-      <h2 class="text-2xl font-semibold mb-4">Categories</h2>
-      <div class="category-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="card category-card cursor-pointer" data-cat="new"><h3 class="text-lg font-medium">New Added</h3></div>
-        <div class="card category-card cursor-pointer" data-cat="hot"><h3 class="text-lg font-medium">Hot Deals</h3></div>
-        <div class="card category-card cursor-pointer" data-cat="preorder"><h3 class="text-lg font-medium">Pre Orders</h3></div>
-        <div class="card category-card cursor-pointer" data-cat="upcoming"><h3 class="text-lg font-medium">Upcoming</h3></div>
-      </div>
-    </section>
+    <h2>Categories</h2>
+    <div id="category-cards" class="category-list"></div>
   </main>
 
-  <footer class="bg-gray-100 py-4 text-center text-sm">
-    <div class="flex justify-center gap-4 mb-2">
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank">
-        <img src="facebook.png" alt="Facebook" class="w-6 h-6">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank">
-        <img src="instagram.png" alt="Instagram" class="w-6 h-6">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank">
-        <img src="whatsapp.png" alt="WhatsApp" class="w-6 h-6">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
+  <div id="image-viewer" class="image-viewer">
+    <button id="close-viewer" class="close-viewer">&times;</button>
+    <img id="viewer-img" src="" alt="">
+  </div>
+
+  <footer>© All rights reserved by The Geek Shop</footer>
 </body>
 </html>
