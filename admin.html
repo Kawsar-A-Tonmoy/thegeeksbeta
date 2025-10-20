@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -48,6 +9,11 @@
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+  </script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
@@ -63,6 +29,9 @@
           Cart <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1"></span>
         </a>
         <a href="status.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Order Status</a>
+        <span id="user-auth">
+          <a href="login.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Login</a>
+        </span>
         <a href="admin.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Admin</a>
       </div>
       <form id="search-form" class="flex ml-4">
@@ -73,7 +42,7 @@
   </header>
 
   <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div id="login-panel" class="card" style="display: none;">
+    <div id="login-panel" class="card">
       <h2 class="text-2xl font-bold mb-4">Admin Login</h2>
       <form id="login-form" class="form grid gap-4">
         <div>
@@ -89,115 +58,76 @@
     </div>
 
     <div id="admin-panel" class="card" style="display: none;">
-      <div class="panel-header flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">Admin Panel</h2>
-        <button onclick="logoutAdmin()" class="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700">Logout</button>
-      </div>
-
-      <h2 class="text-xl font-semibold mb-4">Add Product</h2>
+      <h2 class="text-2xl font-bold mb-4">Admin Dashboard</h2>
+      <h3 class="text-xl font-semibold mb-4">Add Product</h3>
       <form id="add-product-form" class="form grid gap-4">
-        <div class="row grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-medium">Name</label>
-            <input id="add-name" class="w-full p-2 border rounded-lg" required>
-          </div>
-          <div>
-            <label class="block font-medium">Price (tk)</label>
-            <input id="add-price" class="w-full p-2 border rounded-lg" required>
-          </div>
-        </div>
-        <div class="row grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-medium">Discount (tk)</label>
-            <input id="add-discount" value="0" class="w-full p-2 border rounded-lg">
-          </div>
-          <div>
-            <label class="block font-medium">Image URLs (comma-separated)</label>
-            <input id="add-images" class="w-full p-2 border rounded-lg" required>
-          </div>
-        </div>
-        <div class="row grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-medium">Category</label>
-            <select id="add-category" class="w-full p-2 border rounded-lg" required>
-              <option value="new">New</option>
-              <option value="hot">Hot</option>
-              <option value="preorder">Pre Order</option>
-              <option value="upcoming">Upcoming</option>
-            </select>
-          </div>
-          <div>
-            <label class="block font-medium">Color</label>
-            <input id="add-color" class="w-full p-2 border rounded-lg">
-          </div>
-        </div>
-        <div class="row grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block font-medium">Stock</label>
-            <input id="add-stock" type="number" value="0" class="w-full p-2 border rounded-lg">
-          </div>
-          <div>
-            <label class="block font-medium">Availability</label>
-            <select id="add-availability" class="w-full p-2 border rounded-lg" required>
-              <option value="Ready">Ready to Order</option>
-              <option value="Pre Order">Pre Order</option>
-              <option value="Upcoming">Upcoming</option>
-            </select>
-          </div>
+        <div>
+          <label>Name</label>
+          <input id="product-name" required>
         </div>
         <div>
-          <label class="block font-medium">Description</label>
-          <textarea id="add-desc" class="w-full p-2 border rounded-lg min-h-[100px]"></textarea>
+          <label>Price (tk)</label>
+          <input id="product-price" type="number" step="0.01" required>
+        </div>
+        <div>
+          <label>Discount (tk)</label>
+          <input id="product-discount" type="number" step="0.01">
+        </div>
+        <div>
+          <label>Stock</label>
+          <input id="product-stock" type="number" required>
+        </div>
+        <div>
+          <label>Availability</label>
+          <select id="product-availability" required>
+            <option value="In Stock">In Stock</option>
+            <option value="Pre Order">Pre Order</option>
+            <option value="Upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="product-category" required>
+            <option value="new">New</option>
+            <option value="hot">Hot</option>
+            <option value="preorder">Pre Order</option>
+            <option value="upcoming">Upcoming</option>
+          </select>
+        </div>
+        <div>
+          <label>Color</label>
+          <input id="product-color">
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea id="product-desc"></textarea>
+        </div>
+        <div>
+          <label>Images (URLs, comma-separated)</label>
+          <input id="product-images">
         </div>
         <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Add Product</button>
       </form>
-
-      <h2 class="text-xl font-semibold mt-8 mb-4">Products</h2>
-      <div class="table-wrapper">
-        <table class="data-table w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Color</th>
-              <th>Discount (tk)</th>
-              <th>Stock</th>
-              <th>Availability</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="products-body"></tbody>
-        </table>
-      </div>
-
-      <h2 class="text-xl font-semibold mt-8 mb-4">Orders</h2>
-      <div class="table-wrapper">
-        <table class="data-table w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Time</th>
-              <th>Product</th>
-              <th>Color</th>
-              <th>Qty</th>
-              <th>Delivery</th>
-              <th>Paid</th>
-              <th>Due</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>Payment</th>
-              <th>Txn ID</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="orders-body"></tbody>
-        </table>
-      </div>
+      <h3 class="text-xl font-semibold mt-6 mb-4">Products</h3>
+      <div id="data-table"></div>
+      <h3 class="text-xl font-semibold mt-6 mb-4">Orders</h3>
+      <div id="orders-table"></div>
     </div>
   </main>
+
+  <footer class="bg-gray-100 py-4 text-center text-sm">
+    <div class="flex justify-center gap-4 mb-2">
+      <a href="https://www.facebook.com/thegeek.shop0" target="_blank">
+        <img src="facebook.png" alt="Facebook" class="w-6 h-6">
+      </a>
+      <a href="https://www.instagram.com/thegeekshop.0" target="_blank">
+        <img src="instagram.png" alt="Instagram" class="w-6 h-6">
+      </a>
+      <a href="https://wa.me/01960788862" target="_blank">
+        <img src="whatsapp.png" alt="WhatsApp" class="w-6 h-6">
+      </a>
+    </div>
+    <p>&copy; All rights reserved by The Geek Shop</p>
+  </footer>
 </body>
 </html>
