@@ -44,7 +44,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@6.26.0/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
@@ -54,149 +57,149 @@
       <div class="nav-links">
         <a href="index.html">Home</a>
         <a href="products.html">Products</a>
-        <a href="cart.html">Cart <span id="cart-count"></span></a>
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
-      </div>
-      <div class="search-bar">
-        <input id="search-input" type="search" placeholder="Search products...">
-        <button id="search-btn">🔍</button>
       </div>
     </nav>
   </header>
 
   <main class="container">
-    <div id="login-panel" class="card" style="display: none;">
-      <h2>Admin Login</h2>
+    <div id="login-panel" class="card p-6" style="display: none;">
+      <h2 class="text-2xl font-semibold mb-4">Admin Login</h2>
       <form id="login-form" class="form">
-        <div>
-          <label>Email</label>
-          <input id="admin-email" type="email" required>
+        <div class="mb-4">
+          <label class="block font-medium mb-2">Email</label>
+          <input id="admin-email" type="email" class="w-full p-2 border rounded" required>
         </div>
-        <div>
-          <label>Password</label>
-          <input id="admin-pass" type="password" required>
+        <div class="mb-4">
+          <label class="block font-medium mb-2">Password</label>
+          <input id="admin-pass" type="password" class="w-full p-2 border rounded" required>
         </div>
-        <button type="submit">Login</button>
+        <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login</button>
       </form>
     </div>
 
-    <div id="admin-panel" class="card" style="display: none;">
-      <div class="panel-header">
-        <h2>Admin Panel</h2>
-        <button onclick="logoutAdmin()">Logout</button>
+    <div id="admin-panel" class="card p-6" style="display: none;">
+      <div class="panel-header mb-6">
+        <h2 class="text-2xl font-semibold">Admin Panel</h2>
+        <button onclick="logoutAdmin()" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Logout</button>
       </div>
 
-      <h2>Add Product</h2>
-      <form id="add-product-form" class="form">
-        <div class="row">
-          <div>
-            <label>Name</label>
-            <input id="add-name" required>
+      <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-4">Add Product</h3>
+        <form id="add-product-form" class="form grid gap-4">
+          <div class="row">
+            <div>
+              <label class="block font-medium mb-2">Name</label>
+              <input id="add-name" class="w-full p-2 border rounded" required>
+            </div>
+            <div>
+              <label class="block font-medium mb-2">Price (tk)</label>
+              <input id="add-price" class="w-full p-2 border rounded" required>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="block font-medium mb-2">Discount (tk)</label>
+              <input id="add-discount" value="0" class="w-full p-2 border rounded">
+            </div>
+            <div>
+              <label class="block font-medium mb-2">Featured Image URL</label>
+              <input id="add-featured-image" class="w-full p-2 border rounded" required>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="block font-medium mb-2">Additional Image URLs (comma-separated)</label>
+              <input id="add-images" class="w-full p-2 border rounded">
+            </div>
+            <div>
+              <label class="block font-medium mb-2">Category</label>
+              <select id="add-category" class="w-full p-2 border rounded" required>
+                <option value="all">All</option>
+                <option value="new">New Arrivals</option>
+                <option value="hot">Hot Deals</option>
+                <option value="electronics">Electronics</option>
+                <option value="accessories">Accessories</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="block font-medium mb-2">Color</label>
+              <input id="add-color" class="w-full p-2 border rounded">
+            </div>
+            <div>
+              <label class="block font-medium mb-2">Stock</label>
+              <input id="add-stock" type="number" value="0" class="w-full p-2 border rounded">
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label class="block font-medium mb-2">Availability</label>
+              <select id="add-availability" class="w-full p-2 border rounded" required>
+                <option value="Ready">Ready to Order</option>
+                <option value="Pre Order">Pre Order</option>
+                <option value="Upcoming">Upcoming</option>
+              </select>
+            </div>
           </div>
           <div>
-            <label>Slug</label>
-            <input id="add-slug" required>
+            <label class="block font-medium mb-2">Description</label>
+            <textarea id="add-desc" class="w-full p-2 border rounded min-h-[100px]"></textarea>
           </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Price (tk)</label>
-            <input id="add-price" required>
-          </div>
-          <div>
-            <label>Discount (tk)</label>
-            <input id="add-discount" value="0">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Image URLs (comma separated)</label>
-            <input id="add-images" required>
-          </div>
-          <div>
-            <label>Category</label>
-            <select id="add-category" required>
-              <option value="keycaps">Keycaps</option>
-              <option value="keyboards">Keyboards and Bare Bones</option>
-              <option value="switches">Switches</option>
-              <option value="collectibles">Collectibles</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Color</label>
-            <input id="add-color">
-          </div>
-          <div>
-            <label>Stock</label>
-            <input id="add-stock" type="number" value="0">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Availability</label>
-            <select id="add-availability" required>
-              <option value="Ready">Ready to Order</option>
-              <option value="Pre Order">Pre Order</option>
-              <option value="Upcoming">Upcoming</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label>Description</label>
-          <textarea id="add-desc"></textarea>
-        </div>
-        <button type="submit">Add Product</button>
-      </form>
-
-      <h2>Products</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Slug</th>
-              <th>Price</th>
-              <th>Category</th>
-              <th>Color</th>
-              <th>Discount (tk)</th>
-              <th>Stock</th>
-              <th>Availability</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="products-body"></tbody>
-        </table>
+          <button type="submit" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Add Product</button>
+        </form>
       </div>
 
-      <h2>Orders</h2>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Time</th>
-              <th>Product</th>
-              <th>Color</th>
-              <th>Qty</th>
-              <th>Delivery</th>
-              <th>Paid</th>
-              <th>Due</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>Payment</th>
-              <th>Txn ID</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="orders-body"></tbody>
-        </table>
+      <div class="mb-8">
+        <h3 class="text-xl font-semibold mb-4">Products</h3>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Color</th>
+                <th>Discount (tk)</th>
+                <th>Stock</th>
+                <th>Availability</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="text-xl font-semibold mb-4">Orders</h3>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Time</th>
+                <th>Product</th>
+                <th>Color</th>
+                <th>Qty</th>
+                <th>Delivery</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Payment</th>
+                <th>Txn ID</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="orders-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </main>
