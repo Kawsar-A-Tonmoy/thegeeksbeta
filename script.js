@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction, setDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 const { createElement: h } = React;
@@ -71,12 +71,18 @@ function addToCart(productId, quantity = 1, isPreOrder = false) {
     cart.push({ productId, quantity, isPreOrder });
   }
   saveCart(cart);
+  if (auth.currentUser) {
+    saveCartToFirestore(auth.currentUser.uid, cart);
+  }
   alert('Product added to cart!');
 }
 
 function removeFromCart(productId) {
   const cart = getCart().filter(item => item.productId !== productId);
   saveCart(cart);
+  if (auth.currentUser) {
+    saveCartToFirestore(auth.currentUser.uid, cart);
+  }
 }
 
 function updateCartItemQuantity(productId, quantity) {
@@ -85,6 +91,31 @@ function updateCartItemQuantity(productId, quantity) {
   if (item) {
     item.quantity = Math.max(1, Number(quantity));
     saveCart(cart);
+    if (auth.currentUser) {
+      saveCartToFirestore(auth.currentUser.uid, cart);
+    }
+  }
+}
+
+async function saveCartToFirestore(userId, cart) {
+  try {
+    await setDoc(doc(db, 'users', userId), { cart }, { merge: true });
+  } catch (err) {
+    console.error('Error saving cart to Firestore:', err);
+  }
+}
+
+async function loadCartFromFirestore(userId) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      if (data.cart) {
+        saveCart(data.cart);
+      }
+    }
+  } catch (err) {
+    console.error('Error loading cart from Firestore:', err);
   }
 }
 
@@ -174,6 +205,121 @@ async function displayCart() {
   const checkoutBtn = document.getElementById('checkout-cart-btn');
   if (checkoutBtn) {
     checkoutBtn.disabled = cartItems.length === 0;
+    checkoutBtn.addEventListener('click', () => openCheckoutModalForCart(cartItems));
+  }
+}
+
+async function openCheckoutModalForCart(cartItems) {
+  // Aggregate all items for checkout
+  let total = 0;
+  let payNow = 0;
+  let due = 0;
+  let isAnyPreOrder = false;
+  cartItems.forEach(item => {
+    const p = item.product;
+    const price = Number(p.price) || 0;
+    const discount = Number(p.discount) || 0;
+    const unit = price - discount;
+    const subtotal = unit * item.quantity;
+    total += subtotal;
+    if (item.isPreOrder) {
+      isAnyPreOrder = true;
+      const preOrderPrice = Math.round((subtotal * 0.25) / 5) * 5;
+      payNow += preOrderPrice;
+      due += subtotal - preOrderPrice;
+    } else {
+      due += subtotal;
+    }
+  });
+  const delivery = DELIVERY_FEE;
+  total += delivery;
+  due += delivery;
+  document.getElementById('co-delivery').value = `Delivery Charge = ${delivery}`;
+  document.getElementById('co-delivery').dataset.fee = delivery;
+  document.getElementById('co-total').value = total.toFixed(2);
+  document.getElementById('co-pay-now').value = payNow.toFixed(2);
+  document.getElementById('co-due-amount').value = due.toFixed(2);
+  document.getElementById('co-pay-now').style.display = isAnyPreOrder ? 'block' : 'none';
+  document.getElementById('co-due-amount').style.display = isAnyPreOrder ? 'block' : 'none';
+  document.getElementById('co-payment').value = isAnyPreOrder ? 'Bkash' : '';
+  document.getElementById('co-payment').disabled = isAnyPreOrder;
+  document.getElementById('co-payment-number').value = isAnyPreOrder ? BKASH_NUMBER : '';
+  document.getElementById('co-note').textContent = isAnyPreOrder ? `Send money to ${BKASH_NUMBER} and provide transaction ID.` : '';
+  document.getElementById('co-name').value = '';
+  document.getElementById('co-phone').value = '';
+  document.getElementById('co-address').value = '';
+  document.getElementById('co-txn').value = '';
+  document.getElementById('co-policy').checked = false;
+  const modal = document.getElementById('checkout-modal');
+  modal.classList.add('show');
+  const form = document.getElementById('checkout-form');
+  form.onsubmit = (e) => submitCheckoutOrderForCart(e, cartItems);
+}
+
+async function submitCheckoutOrderForCart(e, cartItems) {
+  e.preventDefault();
+  const form = e.target;
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+  const paymentMethod = document.getElementById('co-payment').value;
+  const txnId = document.getElementById('co-txn').value.trim();
+  if (paymentMethod === 'Bkash' && !txnId) {
+    alert('Transaction ID is required for Bkash payments.');
+    return;
+  }
+  try {
+    await runTransaction(db, async (transaction) => {
+      const orders = [];
+      for (const item of cartItems) {
+        const p = item.product;
+        if (p.availability !== 'Pre Order' && item.quantity > Number(p.stock)) {
+          throw new Error(`Insufficient stock for ${p.name}`);
+        }
+        const unit = Number(p.price) - Number(p.discount) || 0;
+        const subtotal = unit * item.quantity;
+        const paid = (paymentMethod === 'Bkash' && item.isPreOrder) ? Math.round((subtotal * 0.25) / 5) * 5 : 0;
+        const due = subtotal - paid;
+        const order = {
+          productId: p.id,
+          productName: p.name,
+          color: p.color || '',
+          quantity: item.quantity,
+          unitPrice: unit,
+          deliveryFee: 0, // Delivery per order, but for simplicity, add at end
+          paid,
+          due,
+          customerName: document.getElementById('co-name').value,
+          phone: document.getElementById('co-phone').value,
+          address: document.getElementById('co-address').value,
+          paymentMethod,
+          transactionId: txnId || null,
+          status: 'Pending',
+          timeISO: new Date().toISOString()
+        };
+        orders.push(order);
+        if (p.availability !== 'Pre Order') {
+          const productRef = doc(db, 'products', p.id);
+          const productSnap = await getDoc(productRef);
+          const currentStock = productSnap.data().stock;
+          transaction.update(productRef, { stock: currentStock - item.quantity });
+        }
+      }
+      // Add delivery to the first order or separate, but for simplicity, add to total due of last order
+      const delivery = Number(document.getElementById('co-delivery').dataset.fee);
+      orders[orders.length - 1].deliveryFee = delivery;
+      orders[orders.length - 1].due += delivery;
+      for (const order of orders) {
+        await addDoc(collection(db, 'orders'), order);
+      }
+    });
+    saveCart([]);
+    alert('Orders placed successfully!');
+    closeCheckoutModal();
+  } catch (err) {
+    console.error('Error placing orders:', err);
+    alert('Error placing orders: ' + err.message);
   }
 }
 
@@ -267,4 +413,231 @@ async function displayProductDetail() {
   document.title = `${p.name} - The Geek Shop`;
   const canonical = document.createElement('link');
   canonical.rel = 'canonical';
-  canonical.href = `${window.location.origin}/product.html?id=${p.id}&name=${encodeURIComponent(p.name)}${p.color ? `-${
+  canonical.href = `${window.location.origin}/product.html?id=${p.id}&name=${encodeURIComponent(p.name)}${p.color ? `-${encodeURIComponent(p.color)}` : ''}`;
+  document.head.appendChild(canonical);
+
+  ReactDOM.render(
+    h('div', { className: 'product-detail card' }, [
+      h('div', { className: 'badges flex gap-2 mb-4' }, [
+        p.category === 'new' ? h('span', { className: 'badge new' }, 'NEW') : null,
+        p.category === 'hot' ? h('span', { className: 'badge hot' }, 'HOT') : null,
+        isOOS ? h('span', { className: 'badge oos' }, 'OUT OF STOCK') : null,
+        isUpcoming ? h('span', { className: 'badge upcoming' }, 'UPCOMING') : null,
+        isPreOrder ? h('span', { className: 'badge preorder' }, 'PRE ORDER') : null
+      ]),
+      h('div', { className: 'gallery grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4' }, images.map((img, i) => 
+        h('img', { 
+          src: img, 
+          alt: `${p.name} image ${i + 1}`, 
+          className: 'w-full h-40 object-cover rounded-lg cursor-pointer', 
+          onClick: () => {
+            const viewer = document.getElementById('image-viewer');
+            const viewerImg = document.getElementById('viewer-img');
+            viewerImg.src = img;
+            viewerImg.alt = `${p.name} image ${i + 1}`;
+            viewer.classList.add('show');
+          },
+          onError: (e) => { e.target.src = ''; e.target.alt = 'Image not available'; },
+          key: i
+        })
+      )),
+      h('h2', { className: 'text-2xl font-bold mt-4' }, p.name),
+      h('div', { className: 'muted mt-2' }, `Color: ${p.color || '-'}`),
+      h('div', { className: 'price text-lg font-semibold mt-2' }, isUpcoming ? 'TBA' : `${hasDiscount ? h('s', null, `৳${price.toFixed(2)}`) + ' ' : ''}৳${finalPrice.toFixed(2)}`),
+      h('p', { className: 'desc mt-4' }, p.description || ''),
+      h('div', { className: 'mt-4' }, [
+        isPreOrder ? h('button', { className: 'preorder-btn bg-purple-600 text-white px-4 py-2 rounded-lg', onClick: () => addToCart(p.id, 1, true) }, 'Add to Cart (Pre Order)') :
+        h('button', { disabled: isOOS || isUpcoming, 'data-id': p.id, className: 'order-btn bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50', onClick: () => addToCart(p.id) }, 'Add to Cart')
+      ])
+    ]),
+    container
+  );
+}
+
+function calculateDeliveryFee(address) {
+  const lowerAddr = address.toLowerCase();
+  if (lowerAddr.includes("savar")) return 70;
+  else if (lowerAddr.includes("dhaka")) return 110;
+  return 150;
+}
+
+function updateDeliveryCharge() {
+  const address = document.getElementById('co-address').value.trim();
+  const deliveryFee = calculateDeliveryFee(address);
+  document.getElementById('co-delivery').value = `Delivery Charge = ${deliveryFee}`;
+  document.getElementById('co-delivery').dataset.fee = deliveryFee;
+  updateTotalInModal();
+}
+
+function closeCheckoutModal() {
+  const modal = document.getElementById('checkout-modal');
+  modal.classList.remove('show');
+}
+
+function updateTotalInModal() {
+  const total = Number(document.getElementById('co-total').value) || 0;
+  // For single item, but since now for cart, handled in open
+}
+
+function handlePaymentChange(e) {
+  const method = e.target.value;
+  const payNumber = document.getElementById('co-payment-number');
+  const txn = document.getElementById('co-txn');
+  const note = document.getElementById('co-note');
+  payNumber.value = method === 'Bkash' ? BKASH_NUMBER : method === 'Cash on Delivery' ? COD_NUMBER : '';
+  txn.required = method === 'Bkash';
+  note.textContent = method === 'Bkash' ? `Send money to ${BKASH_NUMBER} and provide transaction ID.` : '';
+}
+
+function setupUserAuth() {
+  onAuthStateChanged(auth, async (user) => {
+    const userAuthEls = document.querySelectorAll('#user-auth');
+    if (user) {
+      if (user.email.endsWith('@admin.com')) { // Assume admin emails end with @admin.com, adjust as needed
+        // For admin, handle separately if needed
+      } else {
+        userAuthEls.forEach(el => {
+          el.innerHTML = `
+            <span class="px-3 py-2">Hello, ${user.email}</span>
+            <button id="logout-btn" class="px-3 py-2 rounded-lg hover:bg-gray-200">Logout</button>
+          `;
+        });
+        document.querySelectorAll('#logout-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            signOut(auth);
+          });
+        });
+        await loadCartFromFirestore(user.uid);
+      }
+    } else {
+      userAuthEls.forEach(el => {
+        el.innerHTML = `<a href="login.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Login</a>`;
+      });
+    }
+  });
+}
+
+function setupLoginPage() {
+  const loginForm = document.getElementById('user-login-form');
+  const registerForm = document.getElementById('user-register-form');
+  const registerPanel = document.getElementById('register-panel');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('user-email').value;
+      const pass = document.getElementById('user-pass').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        window.location.href = 'index.html';
+      } catch (err) {
+        alert('Login failed: ' + err.message);
+      }
+    });
+  }
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('register-email').value;
+      const pass = document.getElementById('register-pass').value;
+      try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+        window.location.href = 'index.html';
+      } catch (err) {
+        alert('Registration failed: ' + err.message);
+      }
+    });
+  }
+  const switchToRegister = document.getElementById('switch-to-register');
+  const switchToLogin = document.getElementById('switch-to-login');
+  if (switchToRegister) {
+    switchToRegister.addEventListener('click', () => {
+      loginForm.parentElement.style.display = 'none';
+      registerPanel.style.display = 'block';
+    });
+  }
+  if (switchToLogin) {
+    switchToLogin.addEventListener('click', () => {
+      registerPanel.style.display = 'none';
+      loginForm.parentElement.style.display = 'block';
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  setupUserAuth();
+  setupLoginPage();
+  displayInterestProducts();
+  displayProducts();
+  displayProductDetail();
+  displayCart();
+  setupSearch();
+  setupCategoryClicks();
+  updateCartCount();
+  // Common
+  const modal = document.getElementById('checkout-modal');
+  if (modal) {
+    document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
+    const form = document.getElementById('checkout-form');
+    form.addEventListener('submit', submitCheckoutOrder);
+    document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
+    document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
+    document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
+  }
+  // Bind image viewer
+  const viewer = document.getElementById('image-viewer');
+  const viewerImg = document.getElementById('viewer-img');
+  const closeViewer = document.getElementById('close-viewer');
+  if (viewer && viewerImg && closeViewer) {
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) {
+        viewer.classList.remove('show');
+        viewer.classList.remove('zoomed');
+      }
+    });
+    closeViewer.addEventListener('click', () => {
+      viewer.classList.remove('show');
+      viewer.classList.remove('zoomed');
+    });
+    viewerImg.addEventListener('dblclick', () => {
+      viewer.classList.toggle('zoomed');
+    });
+  }
+  // Admin page
+  const loginPanel = document.getElementById('login-panel');
+  const adminPanel = document.getElementById('admin-panel');
+  const addForm = document.getElementById('add-product-form');
+  if (addForm) addForm.addEventListener('submit', addProduct);
+  if (loginPanel && adminPanel) {
+    onAuthStateChanged(auth, async (user) => {
+      if (user && user.email.endsWith('@admin.com')) { // Assume admin emails end with @admin.com
+        console.log('Admin logged in:', user.email);
+        loginPanel.style.display = 'none';
+        adminPanel.style.display = 'block';
+        await renderDataTable();
+        await renderOrdersTable();
+      } else {
+        console.log('No admin logged in');
+        loginPanel.style.display = 'block';
+        adminPanel.style.display = 'none';
+      }
+    });
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('admin-email').value;
+        const pass = document.getElementById('admin-pass').value;
+        console.log('Attempting admin login with email:', email);
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          console.log('Admin login successful');
+        } catch (err) {
+          console.error('Admin login failed:', err);
+          alert('Admin login failed: ' + err.message);
+        }
+      });
+    }
+  }
+  // Status page
+  setupStatusForm();
+});

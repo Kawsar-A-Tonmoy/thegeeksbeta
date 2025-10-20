@@ -42,7 +42,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Products - The Geek Shop</title>
+  <title>Login - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
@@ -76,110 +76,38 @@
   </header>
 
   <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <h1 id="category-title" class="text-3xl font-bold mb-6">Products</h1>
-    <div id="category-products" class="product-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-  </main>
-
-  <div id="image-viewer" class="image-viewer">
-    <button id="close-viewer" class="close-viewer">&times;</button>
-    <img id="viewer-img" src="" alt="">
-  </div>
-
-  <div id="checkout-modal" class="modal">
-    <div class="card modal-content">
-      <div class="modal-header">
-        <h2>Checkout</h2>
-        <button id="close-modal-btn">Close</button>
-      </div>
-      <form id="checkout-form" class="form">
-        <input type="hidden" id="co-product-id">
-        <div class="row">
-          <div>
-            <label>Product Name</label>
-            <input id="co-product-name" readonly>
-          </div>
-          <div>
-            <label>Color</label>
-            <input id="co-color" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Price (tk)</label>
-            <input id="co-price" readonly>
-            <input type="hidden" id="co-unit-price-raw">
-            <input type="hidden" id="co-available-stock">
-          </div>
-          <div>
-            <label>Quantity</label>
-            <input id="co-qty" type="number" min="1" value="1">
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Delivery</label>
-            <input id="co-delivery" readonly>
-          </div>
-          <div>
-            <label>Total (tk)</label>
-            <input id="co-total" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Name</label>
-            <input id="co-name" required>
-          </div>
-          <div>
-            <label>Phone</label>
-            <input id="co-phone" type="tel" required>
-          </div>
+    <div class="card">
+      <h2 class="text-2xl font-bold mb-4">User Login</h2>
+      <form id="user-login-form" class="form grid gap-4">
+        <div>
+          <label class="block font-medium">Email</label>
+          <input id="user-email" type="email" class="w-full p-2 border rounded-lg" required>
         </div>
         <div>
-          <label>Address</label>
-          <textarea id="co-address" required></textarea>
+          <label class="block font-medium">Password</label>
+          <input id="user-pass" type="password" class="w-full p-2 border rounded-lg" required>
         </div>
-        <div class="row">
-          <div>
-            <label>Payment Method</label>
-            <select id="co-payment" required>
-              <option value="">Select</option>
-              <option value="Cash on Delivery">Cash on Delivery</option>
-              <option value="Bkash">Bkash</option>
-            </select>
-          </div>
-          <div>
-            <label>Pay to (Send money)</label>
-            <input id="co-payment-number" readonly>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label>Pay Now (tk)</label>
-            <input id="co-pay-now" readonly>
-          </div>
-          <div>
-            <label>Due Amount (tk)</label>
-            <input id="co-due-amount" readonly>
-          </div>
-        </div>
-        <div>
-          <label>Transaction ID</label>
-          <input id="co-txn">
-        </div>
-        <div>
-          <label>
-            <input type="checkbox" id="co-policy" required>
-            I agree to the <a href="status.html">Order Policy</a>
-          </label>
-        </div>
-        <div>
-          <p id="co-note" class="muted"></p>
-        </div>
-        <button id="place-order-btn" type="submit">Place Order</button>
+        <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Login</button>
       </form>
+      <p class="mt-4">Don't have an account? <button id="switch-to-register" class="text-blue-600 underline">Register</button></p>
     </div>
-  </div>
+
+    <div id="register-panel" class="card" style="display: none;">
+      <h2 class="text-2xl font-bold mb-4">User Registration</h2>
+      <form id="user-register-form" class="form grid gap-4">
+        <div>
+          <label class="block font-medium">Email</label>
+          <input id="register-email" type="email" class="w-full p-2 border rounded-lg" required>
+        </div>
+        <div>
+          <label class="block font-medium">Password</label>
+          <input id="register-pass" type="password" class="w-full p-2 border rounded-lg" required>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Register</button>
+      </form>
+      <p class="mt-4">Already have an account? <button id="switch-to-login" class="text-blue-600 underline">Login</button></p>
+    </div>
+  </main>
 
   <footer class="bg-gray-100 py-4 text-center text-sm">
     <div class="flex justify-center gap-4 mb-2">
