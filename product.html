@@ -1,53 +1,11 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!-- product.html (new file for individual product pages) -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Details - The Geek Shop</title>
+  <title>Product - The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@6.26.0/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
@@ -63,47 +21,20 @@
     </nav>
   </header>
 
-  <main class="container">
-    <div id="product-details" class="card p-6">
-      <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex-1">
-          <img id="product-main-image" class="w-full h-64 object-cover rounded-lg" src="" alt="">
-          <div id="product-images" class="flex gap-2 mt-4 flex-wrap"></div>
-        </div>
-        <div class="flex-1">
-          <h1 id="product-name" class="text-2xl font-bold"></h1>
-          <div id="product-badges" class="badges my-2"></div>
-          <p id="product-color" class="muted"></p>
-          <p id="product-price" class="price text-lg font-semibold"></p>
-          <p id="product-description" class="my-4"></p>
-          <div class="order-row">
-            <button id="order-btn" class="order-btn">Order</button>
-            <button id="preorder-btn" class="preorder-btn" style="display: none;">Pre Order</button>
-          </div>
-        </div>
-      </div>
+  <main class="container product-detail">
+    <div class="images">
+      <img id="featured-img" src="" alt="">
+      <div class="thumbnails"></div>
+    </div>
+    <h1 id="product-name"></h1>
+    <p class="price" id="product-price"></p>
+    <p id="product-description"></p>
+    <div class="badges" id="product-badges"></div>
+    <div class="muted" id="product-color"></div>
+    <div class="order-row">
+      <button id="order-btn">Order</button>
     </div>
   </main>
-
-  <footer style="background-color: #e8e8ff; padding: 20px; text-align: center; color: #000000; font-family: Arial, sans-serif;">
-    <div>
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank" style="margin: 0 10px;">
-        <img src="facebook.png" alt="Facebook" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank" style="margin: 0 10px;">
-        <img src="instagram.png" alt="Instagram" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank" style="margin: 0 10px;">
-        <img src="whatsapp.png" alt="WhatsApp" style="width: 30px; height: 30px;">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
-
-  <div id="image-viewer" class="image-viewer">
-    <button id="close-viewer" class="close-viewer">&times;</button>
-    <img id="viewer-img" src="" alt="">
-  </div>
 
   <div id="checkout-modal" class="modal">
     <div class="card modal-content">
@@ -200,5 +131,7 @@
       </form>
     </div>
   </div>
+
+  <footer>© All rights reserved by The Geek Shop</footer>
 </body>
 </html>

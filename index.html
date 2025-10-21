@@ -1,53 +1,11 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!-- index.html (now Home page) -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Geek Shop - Home</title>
+  <title>The Geek Shop</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/babel-standalone@6.26.0/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="script.js" type="module"></script>
 </head>
 <body>
@@ -64,50 +22,23 @@
   </header>
 
   <main class="container">
-    <section id="may-interest" class="my-8">
-      <h2 class="text-2xl font-semibold mb-4">May Interest You</h2>
-      <div class="relative overflow-hidden">
-        <div id="product-slider" class="flex transition-transform duration-500"></div>
+    <section id="may-interest-you">
+      <h2>May Interest You</h2>
+      <div class="carousel">
+        <div class="carousel-inner"></div>
       </div>
     </section>
 
-    <section id="categories" class="my-8">
-      <h2 class="text-2xl font-semibold mb-4">Shop by Category</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <a href="products.html?category=new" class="card category-card p-4 text-center hover:shadow-lg transition-shadow">
-          <h3 class="text-lg font-medium">New Arrivals</h3>
-          <p class="muted">Discover the latest products</p>
-        </a>
-        <a href="products.html?category=hot" class="card category-card p-4 text-center hover:shadow-lg transition-shadow">
-          <h3 class="text-lg font-medium">Hot Deals</h3>
-          <p class="muted">Grab the best offers</p>
-        </a>
-        <a href="products.html?category=electronics" class="card category-card p-4 text-center hover:shadow-lg transition-shadow">
-          <h3 class="text-lg font-medium">Electronics</h3>
-          <p class="muted">Tech gadgets and more</p>
-        </a>
-        <a href="products.html?category=accessories" class="card category-card p-4 text-center hover:shadow-lg transition-shadow">
-          <h3 class="text-lg font-medium">Accessories</h3>
-          <p class="muted">Enhance your style</p>
-        </a>
+    <section id="categories">
+      <h2>Categories</h2>
+      <div class="category-grid">
+        <div class="category-btn" style="background-image: url('https://placehold.co/300x200?text=Keycaps')" onclick="location.href='products.html?category=Keycaps'">Keycaps</div>
+        <div class="category-btn" style="background-image: url('https://placehold.co/300x200?text=Switches')" onclick="location.href='products.html?category=Switches'">Switches</div>
+        <div class="category-btn" style="background-image: url('https://placehold.co/300x200?text=Keyboard+and+BareBones')" onclick="location.href='products.html?category=Keyboard%20and%20BareBones'">Keyboard and BareBones</div>
+        <div class="category-btn" style="background-image: url('https://placehold.co/300x200?text=Collectables')" onclick="location.href='products.html?category=Collectables'">Collectables</div>
       </div>
     </section>
   </main>
-
-  <footer style="background-color: #e8e8ff; padding: 20px; text-align: center; color: #000000; font-family: Arial, sans-serif;">
-    <div>
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank" style="margin: 0 10px;">
-        <img src="facebook.png" alt="Facebook" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank" style="margin: 0 10px;">
-        <img src="instagram.png" alt="Instagram" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank" style="margin: 0 10px;">
-        <img src="whatsapp.png" alt="WhatsApp" style="width: 30px; height: 30px;">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
 
   <div id="image-viewer" class="image-viewer">
     <button id="close-viewer" class="close-viewer">&times;</button>
@@ -209,5 +140,7 @@
       </form>
     </div>
   </div>
+
+  <footer>© All rights reserved by The Geek Shop</footer>
 </body>
 </html>

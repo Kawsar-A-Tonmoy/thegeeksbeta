@@ -1,51 +1,12 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!-- status.html (updated nav) -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Status - The Geek Shop</title>
-  <link rel="icon" type="image/x-icon" href="logo t.png">
+  <title>Order Status</title>
+ <link rel="icon" type="image/x-icon" href="logo t.png"> 
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
@@ -54,19 +15,16 @@
   <script type="module" src="script.js"></script>
 </head>
 <body>
-  <header class="site-header">
-    <nav>
-      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
+<header class="site-header">
+     <nav>
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
+      </a>
       <div class="nav-links">
         <a href="index.html">Home</a>
         <a href="products.html">Products</a>
-        <a href="cart.html">Cart <span id="cart-count"></span></a>
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
-      </div>
-      <div class="search-bar">
-        <input id="search-input" type="search" placeholder="Search products...">
-        <button id="search-btn">🔍</button>
       </div>
     </nav>
   </header>
@@ -82,90 +40,93 @@
     </form>
   </div>
 
-  <section class="notice-section" style="display: flex; gap: 20px; align-items: flex-start;">
-    <!-- Left card -->
-    <div class="notice-card card" style="flex: 1; text-align: left;">
-      <h3>📢 Important Notice</h3>
-      <p class="muted">
-        Please ensure all order details are entered correctly before confirmation.  
-        Double-check your <b>address</b>, <b>contact number</b>, and <b>product selection</b> to avoid delays.  
-        Orders once confirmed are subject to our Return and Pre-Order Policies.
-      </p>
-    </div>
+    <section class="notice-section" style="display: flex; gap: 20px; align-items: flex-start;">
+  <!-- Left card -->
+  <div class="notice-card card" style="flex: 1; text-align: left;">
+    <h3>📢 Important Notice</h3>
+    <p class="muted">
+      Please ensure all order details are entered correctly before confirmation.  
+      Double-check your <b>address</b>, <b>contact number</b>, and <b>product selection</b> to avoid delays.  
+      Orders once confirmed are subject to our Return and Pre-Order Policies.
+    </p>
+  </div>
 
-    <!-- Middle full-length policy card -->
-    <div class="notice-card card" style="flex: 2; text-align: left;">
-      <h2>📦 Shipping & 🔄 Return Policy</h2>
-      
-      <h3>1. Order Processing & Dispatch</h3>
-      <ul>
-        <li>All confirmed orders placed before <b>6:00 PM</b> are processed and dispatched the <b>same business day</b>.</li>
-        <li>Orders placed after 6:00 PM will be dispatched on the <b>next business day</b>.</li>
-      </ul>
+  <!-- Middle full-length policy card -->
+  <div class="notice-card card" style="flex: 2; text-align: left;">
+    <h2>📦 Shipping & 🔄 Return Policy</h2>
+    
+    <h3>1. Order Processing & Dispatch</h3>
+    <ul>
+      <li>All confirmed orders placed before <b>6:00 PM</b> are processed and dispatched the <b>same business day</b>.</li>
+      <li>Orders placed after 6:00 PM will be dispatched on the <b>next business day</b>.</li>
+    </ul>
 
-      <h3>2. Delivery Timeline</h3>
-      <ul>
-        <li>Estimated delivery time is <b>3–7 business days</b>, depending on location and courier efficiency.</li>
-        <li>Customers will be notified with tracking details once the order has been dispatched.</li>
-      </ul>
+    <h3>2. Delivery Timeline</h3>
+    <ul>
+      <li>Estimated delivery time is <b>3–7 business days</b>, depending on location and courier efficiency.</li>
+      <li>Customers will be notified with tracking details once the order has been dispatched.</li>
+    </ul>
 
-      <h3>3. Pre-Order Policy</h3>
-      <ul>
-        <li>A <b>25% advance payment</b> is required to confirm any pre-order.</li>
-      </ul>
-      <h4>Important Note</h4>
-      <ul>
-        <li>Once a pre-order is confirmed, it <b>cannot be cancelled, refunded, or placed on hold</b>.</li>
-        <li>Customers must <b>verify the product upon delivery</b> in the presence of the courier.</li>
-      </ul>
+    <h3>3. Pre-Order Policy</h3>
+    <ul>
+      <li>A <b>25% advance payment</b> is required to confirm any pre-order.</li>
+    </ul>
+    <h4>Important Note</h4>
+    <ul>
+      <li>Once a pre-order is confirmed, it <b>cannot be cancelled, refunded, or placed on hold</b>.</li>
+      <li>Customers must <b>verify the product upon delivery</b> in the presence of the courier.</li>
+    </ul>
 
-      <h3>4. Return Policy</h3>
+    <h3>4. Return Policy</h3>
 
-      <h4>4.1 Eligibility Window</h4>
-      <ul>
-        <li>Items can be returned within <b>7 days of purchase</b>.</li>
-        <li>The 7-day period is counted from the <b>date of delivery</b>.</li>
-      </ul>
+    <h4>4.1 Eligibility Window</h4>
+    <ul>
+      <li>Items can be returned within <b>7 days of purchase</b>.</li>
+      <li>The 7-day period is counted from the <b>date of delivery</b>.</li>
+    </ul>
 
-      <h4>4.2 Condition of Returned Items</h4>
-      <ul>
-        <li>Products must be in <b>original condition</b>, unused, with all packaging and accessories intact.</li>
-        <li>Items not meeting these conditions may be declined for return.</li>
-      </ul>
+    <h4>4.2 Condition of Returned Items</h4>
+    <ul>
+      <li>Products must be in <b>original condition</b>, unused, with all packaging and accessories intact.</li>
+      <li>Items not meeting these conditions may be declined for return.</li>
+    </ul>
 
-      <h4>4.3 Valid Reasons for Return</h4>
-      <ul>
-        <li><b>Change of preference is not accepted</b> – Returns <b>cannot</b> be made for reasons like “didn’t like the product” or “changed my mind”.</li>
-        <li><b>Defective on Arrival</b> – Products may only be returned if <b>defective or damaged upon delivery</b>.</li>
-        <li><b>Pre-Orders</b> – Confirmed pre-orders <b>cannot be returned</b>, unless defective on arrival.</li>
-      </ul>
-    </div>
+    <h4>4.3 Valid Reasons for Return</h4>
+    <ul>
+      <li><b>Change of preference is not accepted</b> – Returns <b>cannot</b> be made for reasons like “didn’t like the product” or “changed my mind”.</li>
+      <li><b>Defective on Arrival</b> – Products may only be returned if <b>defective or damaged upon delivery</b>.</li>
+      <li><b>Pre-Orders</b> – Confirmed pre-orders <b>cannot be returned</b>, unless defective on arrival.</li>
+    </ul>
+  </div>
 
-    <!-- Right card -->
-    <div class="notice-card card" style="flex: 1; text-align: left;">
-      <h3>💬 Support</h3>
-      <p class="muted">
-        For assistance, please reach us via:<br><br>
-        ▪ Facebook: <a href="https://www.facebook.com/kawsara.tonmoy/" target="_blank">The Geek Shop</a><br>
-        ▪ Instagram: <a href="https://www.instagram.com/kawsara.tonmoy/" target="_blank">@thegeekshop</a><br>
-        ▪ WhatsApp: <a href="https://wa.me/01960788862" target="_blank">WhatsApp</a>
-      </p>
-    </div>
-  </section>
+  <!-- Right card -->
+  <div class="notice-card card" style="flex: 1; text-align: left;">
+    <h3>💬 Support</h3>
+    <p class="muted">
+      For assistance, please reach us via:<br><br>
+      ▪ Facebook: <a href="https://www.facebook.com/kawsara.tonmoy/" target="_blank">The Geek Shop</a><br>
+      ▪ Instagram: <a href="https://www.instagram.com/kawsara.tonmoy/" target="_blank">@thegeekshop</a><br>
+      ▪ WhatsApp: <a href="https://wa.me/01960788862" target="_blank">WhatsApp</a>
+    </p>
+  </div>
+</section>
 
-  <footer style="background-color: #e8e8ff; padding: 20px; text-align: center; height: 90px; color: #000000; font-family: Arial, sans-serif;">
-    <div>
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank" style="margin: 0 10px;">
-        <img src="facebook.png" alt="Facebook" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank" style="margin: 0 10px;">
-        <img src="instagram.png" alt="Instagram" style="width: 30px; height: 30px;">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank" style="margin: 0 10px;">
-        <img src="whatsapp.png" alt="WhatsApp" style="width: 30px; height: 30px;">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
+
+<footer style="background-color: #e8e8ff; padding: 20px; text-align: center; height: 90px; color:  #000000; font-family: Arial, sans-serif;">
+  <div>
+    <a href="https://www.facebook.com/thegeek.shop0" target="_blank" style="margin: 0 10px;">
+      <img src="facebook.png" alt="Facebook" style="width: 30px; height: 30px;">
+    </a>
+    <a href="https://www.instagram.com/thegeekshop.0" target="_blank" style="margin: 0 10px;">
+      <img src="instagram.png" alt="Instagram" style="width: 30px; height: 30px;">
+    </a>
+        <a href="wa.me/01960788862" target="_blank" style="margin: 0 10px;">
+      <img src="whatsapp.png" alt="Instagram" style="width: 30px; height: 30px;">
+    </a>
+  </div>
+ 
+  <p>&copy; All rights reserved by The Geek Shop</p>
+</footer>
 </body>
+
 </html>
