@@ -529,3 +529,17 @@ footer {
 .order-now-btn:hover {
   background: #2563eb;
 }
+/* Product Card Button */
+.order-now-btn {
+  margin-top: 8px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s;
+}
+.order-now-btn:hover { background: #1d4ed8; }
