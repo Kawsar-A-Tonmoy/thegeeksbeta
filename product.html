@@ -1,4 +1,4 @@
-<!-- product.html (new file for individual product pages) -->
+<!-- product.html (remodeled for professional look, Other Products section) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,22 +18,34 @@
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
       </div>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search products...">
+        <button id="search-btn">Search</button>
+      </div>
     </nav>
   </header>
 
   <main class="container product-detail">
-    <div class="images">
-      <img id="featured-img" src="" alt="">
-      <div class="thumbnails"></div>
+    <div class="product-layout">
+      <div class="product-images">
+        <img id="featured-img" src="" alt="">
+        <div class="thumbnails"></div>
+      </div>
+      <div class="product-info">
+        <h1 id="product-name"></h1>
+        <p class="price" id="product-price"></p>
+        <div class="badges" id="product-badges"></div>
+        <div class="muted" id="product-color"></div>
+        <p id="product-description"></p>
+        <div class="order-row">
+          <button id="order-btn">Order</button>
+        </div>
+      </div>
     </div>
-    <h1 id="product-name"></h1>
-    <p class="price" id="product-price"></p>
-    <p id="product-description"></p>
-    <div class="badges" id="product-badges"></div>
-    <div class="muted" id="product-color"></div>
-    <div class="order-row">
-      <button id="order-btn">Order</button>
-    </div>
+    <section id="other-products">
+      <h2>Other Products</h2>
+      <div class="product-grid"></div>
+    </section>
   </main>
 
   <div id="checkout-modal" class="modal">

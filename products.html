@@ -1,4 +1,4 @@
-<!-- products.html (new file for listing products by category) -->
+<!-- products.html (updated to show all products, with category filter if provided, search integration) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,31 +18,16 @@
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
       </div>
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search products...">
+        <button id="search-btn">Search</button>
+      </div>
     </nav>
   </header>
 
   <main class="container">
     <h1>Products</h1>
-
-    <section id="keycaps-products">
-      <h2>Keycaps</h2>
-      <div class="product-list"></div>
-    </section>
-
-    <section id="switches-products">
-      <h2>Switches</h2>
-      <div class="product-list"></div>
-    </section>
-
-    <section id="keyboard-barebones-products">
-      <h2>Keyboard and BareBones</h2>
-      <div class="product-list"></div>
-    </section>
-
-    <section id="collectables-products">
-      <h2>Collectables</h2>
-      <div class="product-list"></div>
-    </section>
+    <div id="all-products" class="product-grid"></div>
   </main>
 
   <div id="image-viewer" class="image-viewer">
