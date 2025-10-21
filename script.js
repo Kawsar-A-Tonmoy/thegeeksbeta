@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if ($('close-modal-btn')) {
     $('close-modal-btn').onclick = () => $('#checkout-modal').classList.remove('show');
   }
-  if ($('close-viewer')) {
-    $('close-viewer').onclick = () => $('#image-viewer').classList.remove('show');
+  if ($('close-edit-btn')) {
+    $('close-edit-btn').onclick = () => $('#edit-modal').classList.remove('show');
   }
 
   // Page-specific init
@@ -87,7 +87,7 @@ function renderInterestProducts() {
   const selected = shuffled.slice(0, 4);
 
   container.innerHTML = selected.map(p => createProductCard(p)).join('');
-  attachCardClickListeners();
+  attachCardListeners();
 }
 
 // ======================
@@ -106,7 +106,7 @@ async function loadCategoryPage() {
   await loadProducts();
   const filtered = products.filter(p => p.mainCategory === cat);
   $('category-products').innerHTML = filtered.map(p => createProductCard(p)).join('');
-  attachCardClickListeners();
+  attachCardListeners();
 }
 
 // ======================
@@ -122,6 +122,7 @@ async function loadProductPage() {
 
   renderProductDetail(currentProduct);
   attachOrderButton();
+  renderRelatedProducts();
 }
 
 function renderProductDetail(product) {
@@ -156,21 +157,36 @@ function renderProductDetail(product) {
   });
 }
 
+function renderRelatedProducts() {
+  const container = $('related-products');
+  if (!container) return;
+
+  const related = products
+    .filter(p => p.id !== currentProduct.id && p.mainCategory === currentProduct.mainCategory)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 4);
+
+  container.innerHTML = related.map(p => createProductCard(p)).join('');
+  attachCardListeners();
+}
+
 function attachOrderButton() {
   $('order-btn').onclick = () => openCheckoutModal(currentProduct);
 }
 
 // ======================
-// PRODUCT CARD
+// PRODUCT CARD (WITH ORDER BUTTON)
 // ======================
 function createProductCard(product) {
   const images = product.images || [product.image];
-  const slug = generateSlug(product.name, product.color);
   const url = `product.html?id=${product.id}`;
+  const buttonText = product.availability === 'Pre Order' ? 'Pre Order Now' : 'Order Now';
 
   return `
-    <a href="${url}" class="card product-card">
-      <img src="${images[0]}" alt="${product.name}" loading="lazy">
+    <div class="card product-card">
+      <a href="${url}" class="image-link">
+        <img src="${images[0]}" alt="${product.name}" loading="lazy">
+      </a>
       <div class="badges">
         ${product.category === 'new' ? '<span class="badge new">New</span>' : ''}
         ${product.category === 'hot' ? '<span class="badge hot">Hot</span>' : ''}
@@ -180,16 +196,16 @@ function createProductCard(product) {
       <div class="price">${formatPrice(product.price, product.discount)}</div>
       <p class="name">${product.name}</p>
       ${product.color ? `<p class="muted">Color: ${product.color}</p>` : ''}
-    </a>
+      <button class="order-now-btn" onclick="openCheckoutModal(${JSON.stringify(product).replace(/"/g, '&quot;')})">${buttonText}</button>
+    </div>
   `;
 }
 
-function attachCardClickListeners() {
-  $$$('.product-card').forEach(card => {
-    card.addEventListener('click', (e) => {
+function attachCardListeners() {
+  $$$('.product-card .image-link').forEach(link => {
+    link.addEventListener('click', (e) => {
       e.preventDefault();
-      const href = card.getAttribute('href');
-      navigate(href);
+      navigate(link.getAttribute('href'));
     });
   });
 }
@@ -202,17 +218,12 @@ function openCheckoutModal(product) {
   const modal = $('#checkout-modal');
   const form = $('checkout-form');
 
-  // Fill product info
   $('co-product-id').value = product.id;
   $('co-product-name').value = product.name;
   $('co-color').value = product.color || 'N/A';
   $('co-unit-price-raw').value = product.price - (product.discount || 0);
   $('co-available-stock').value = product.stock || 0;
 
-  // Payment number
-  $('co-payment-number').value = $('co-payment').value === 'Bkash' ? BKASH_NUMBER : COD_NUMBER;
-
-  // Update on change
   const updateTotal = () => {
     const qty = parseInt($('co-qty').value) || 1;
     const unit = parseFloat($('co-unit-price-raw').value);
@@ -242,7 +253,6 @@ function openCheckoutModal(product) {
   updateTotal();
   modal.classList.add('show');
 
-  // Submit
   form.onsubmit = async (e) => {
     e.preventDefault();
     if (!$('co-policy').checked) return alert('Please agree to the policy.');
@@ -316,7 +326,7 @@ function initAdmin() {
       price: parseFloat($('#add-price').value),
       discount: parseFloat($('#add-discount').value) || 0,
       images: images,
-      image: images[0], // featured
+      image: images[0],
       mainCategory: $('#add-main-category').value,
       category: $('#add-category').value,
       color: $('#add-color').value.trim() || null,
@@ -331,6 +341,37 @@ function initAdmin() {
       await addDoc(collection(db, 'products'), product);
       alert('Product added!');
       e.target.reset();
+      loadAdminProducts();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+
+  $('#edit-product-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = $('#edit-id').value;
+    const imagesInput = $('#edit-image').value.trim();
+    const images = imagesInput.split(',').map(url => url.trim()).filter(Boolean);
+
+    const updated = {
+      name: $('#edit-name').value.trim(),
+      price: parseFloat($('#edit-price').value),
+      discount: parseFloat($('#edit-discount').value) || 0,
+      images: images,
+      image: images[0],
+      mainCategory: $('#edit-main-category').value,
+      category: $('#edit-category').value,
+      color: $('#edit-color').value.trim() || null,
+      stock: parseInt($('#edit-stock').value) || 0,
+      availability: $('#edit-availability').value,
+      description: $('#edit-desc').value.trim(),
+      slug: generateSlug($('#edit-name').value, $('#edit-color').value)
+    };
+
+    try {
+      await updateDoc(doc(db, 'products', id), updated);
+      alert('Product updated!');
+      $('#edit-modal').classList.remove('show');
       loadAdminProducts();
     } catch (err) {
       alert('Error: ' + err.message);
@@ -361,7 +402,7 @@ async function loadAdminProducts() {
         <td>${p.stock}</td>
         <td>${p.availability}</td>
         <td>
-          <button onclick="editProduct('${p.id}')" class="secondary">Edit</button>
+          <button onclick="openEditModal('${p.id}')" class="secondary">Edit</button>
           <button onclick="deleteProduct('${p.id}')" class="danger">Delete</button>
         </td>
       </tr>
@@ -369,15 +410,23 @@ async function loadAdminProducts() {
   }).join('');
 }
 
-window.editProduct = (id) => {
+window.openEditModal = async (id) => {
   const product = products.find(p => p.id === id);
   if (!product) return;
-  // Open edit modal or inline edit (you can expand this)
-  const newName = prompt('New name:', product.name);
-  if (newName && newName !== product.name) {
-    updateDoc(doc(db, 'products', id), { name: newName, slug: generateSlug(newName, product.color) });
-    setTimeout(loadAdminProducts, 500);
-  }
+
+  $('#edit-id').value = product.id;
+  $('#edit-name').value = product.name;
+  $('#edit-price').value = product.price;
+  $('#edit-discount').value = product.discount || 0;
+  $('#edit-image').value = (product.images || [product.image]).join(', ');
+  $('#edit-main-category').value = product.mainCategory;
+  $('#edit-category').value = product.category;
+  $('#edit-color').value = product.color || '';
+  $('#edit-stock').value = product.stock || 0;
+  $('#edit-availability').value = product.availability;
+  $('#edit-desc').value = product.description || '';
+
+  $('#edit-modal').classList.add('show');
 };
 
 window.deleteProduct = async (id) => {
@@ -456,6 +505,3 @@ async function loadProducts() {
   const snapshot = await getDocs(collection(db, 'products'));
   products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 }
-
-// Expose for admin
-window.loadAdminProducts = loadAdminProducts;

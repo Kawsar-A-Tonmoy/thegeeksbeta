@@ -19,8 +19,9 @@
     </nav>
   </header>
 
-  <main class="container">
-    <div id="login-panel" class="card" style="display: none;">
+  <main class Federation="container">
+    <!-- Login Panel -->
+    <div id="login-panel" class="card">
       <h2>Admin Login</h2>
       <form id="login-form" class="form">
         <div><label>Email</label><input id="admin-email" type="email" required></div>
@@ -29,6 +30,7 @@
       </form>
     </div>
 
+    <!-- Admin Panel -->
     <div id="admin-panel" class="card" style="display: none;">
       <div class="panel-header">
         <h2>Admin Panel</h2>
@@ -87,7 +89,7 @@
               <th>Img</th>
               <th>Name</th>
               <th>Price</th>
-              <th>Cat</th>
+              <th>Main Cat</th>
               <th>Tag</th>
               <th>Color</th>
               <th>Disc</th>
@@ -119,6 +121,59 @@
           </thead>
           <tbody id="orders-body"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+      <div class="card modal-content">
+        <div class="modal-header">
+          <h2>Edit Product</h2>
+          <button id="close-edit-btn">Close</button>
+        </div>
+        <form id="edit-product-form" class="form">
+          <input type="hidden" id="edit-id">
+          <div class="row">
+            <div><label>Name</label><input id="edit-name" required></div>
+            <div><label>Price (tk)</label><input id="edit-price" type="number" required></div>
+          </div>
+          <div class="row">
+            <div><label>Discount (tk)</label><input id="edit-discount" type="number"></div>
+            <div><label>Image URLs</label><input id="edit-image" required></div>
+          </div>
+          <div class="row">
+            <div><label>Main Category</label>
+              <select id="edit-main-category" required>
+                <option value="keycaps">Keycaps</option>
+                <option value="switches">Switches</option>
+                <option value="keyboard-barebones">Keyboard & Barebones</option>
+                <option value="collectables">Collectables</option>
+              </select>
+            </div>
+            <div><label>Tag</label>
+              <select id="edit-category" required>
+                <option value="all">All</option>
+                <option value="new">New</option>
+                <option value="hot">Hot</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div><label>Color</label><input id="edit-color"></div>
+            <div><label>Stock</label><input id="edit-stock" type="number"></div>
+          </div>
+          <div class="row">
+            <div><label>Availability</label>
+              <select id="edit-availability" required>
+                <option value="Ready">Ready to Order</option>
+                <option value="Pre Order">Pre Order</option>
+                <option value="Upcoming">Upcoming</option>
+              </select>
+            </div>
+          </div>
+          <div><label>Description</label><textarea id="edit-desc" rows="4"></textarea></div>
+          <button type="submit">Update Product</button>
+        </form>
       </div>
     </div>
   </main>
