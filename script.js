@@ -1,11 +1,10 @@
-// script.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc, getDoc, orderBy, query, where, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { firebaseConfig, BKASH_NUMBER, COD_NUMBER, DELIVERY_FEE } from './config.js';
 
 // Initialize Firebase
-const app = initializeApp firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -25,21 +24,11 @@ const statusColors = {
   Cancelled: '#ef4444'
 };
 
-// ====== GLOBALS ======
-let currentProduct = null;
-let products = [];
-
-// ====== DOM HELPERS ======
-const $ = (id) => document.getElementById(id);
-const $$ = (sel) => document.querySelector(sel);
-const $$$ = (sel) => document.querySelectorAll(sel);
-
-// ====== UTILS ======
+// ====== UTIL ======
 async function loadProducts() {
   try {
     const snapshot = await getDocs(collection(db, 'products'));
-    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return products;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err) {
     console.error('Error loading products:', err);
     return [];
@@ -59,82 +48,89 @@ function generateSlug(name, color = '') {
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   return color ? `${base}-${color.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : base;
 }
+function formatPrice(price, discount = 0) {
+  const final = price - discount;
+  return discount > 0 ? `<s>${price}</s> ${final} tk` : `${final} tk`;
+}
 function getUrlParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 function navigate(url) {
   window.location.href = url;
 }
-function formatPrice(price, discount = 0) {
-  const final = price - discount;
-  return discount > 0 ? `<s>${price}</s> ${final} tk` : `${final} tk`;
-}
 
-// ====== PRODUCT PAGE DISPLAY ======
+// ====== PRODUCT PAGE ======
 async function displayProducts() {
+  const sections = {
+    new: document.getElementById('new-products'),
+    hot: document.getElementById('hot-deals'),
+    all: document.getElementById('all-products'),
+  };
   const path = window.location.pathname;
+  const products = await loadProducts();
 
   if (path.includes('index.html') || path === '/') {
-    // Home page
-    const interestContainer = $('interest-products');
-    if (!interestContainer) return;
-    const shuffled = [...products].sort(() => 0.5 - Math.random()).slice(0, 4);
-    interestContainer.innerHTML = shuffled.map(p => createProductCard(p)).join('');
-    attachCardListeners();
-  } 
-  else if (path.includes('category.html')) {
-    // Category page
-    const cat = getUrlParam('cat');
-    const filtered = products.filter(p => p.mainCategory === cat);
-    const container = $('category-products');
-    if (container) {
-      container.innerHTML = filtered.map(p => createProductCard(p)).join('');
+    // Home page logic for 'May Interest You'
+    const interestContainer = document.getElementById('interest-products');
+    if (interestContainer) {
+      const shuffled = [...products].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 4);
+      interestContainer.innerHTML = selected.map(p => createProductCard(p)).join('');
       attachCardListeners();
     }
-  } 
-  else if (path.includes('product.html')) {
-    // Product detail page
+  } else if (path.includes('category.html')) {
+    // Category page
+    const cat = getUrlParam('cat');
+    const titleMap = {
+      'keycaps': 'Keycaps',
+      'switches': 'Switches',
+      'keyboard-barebones': 'Keyboard & Barebones',
+      'collectables': 'Collectables'
+    };
+    const categoryTitle = document.getElementById('category-title');
+    if (categoryTitle) categoryTitle.textContent = titleMap[cat] || 'Category';
+    const categoryProducts = document.getElementById('category-products');
+    if (categoryProducts) {
+      const filtered = products.filter(p => p.mainCategory === cat);
+      categoryProducts.innerHTML = filtered.map(p => createProductCard(p)).join('');
+      attachCardListeners();
+    }
+  } else if (path.includes('product.html')) {
+    // Individual product page
     const id = getUrlParam('id');
     if (!id) return navigate('index.html');
-    currentProduct = products.find(p => p.id === id);
-    if (!currentProduct) return navigate('index.html');
-    renderProductDetail(currentProduct);
+    const product = products.find(p => p.id === id);
+    if (!product) return navigate('index.html');
+    renderProductDetail(product);
     attachOrderButton();
-    renderRelatedProducts();
-  } 
-  else {
-    // Original products page (all, new, hot)
-    const sections = {
-      new: $('new-products'),
-      hot: $('hot-deals'),
-      all: $('all-products'),
-    };
-    if (!sections.all) return;
+    renderRelatedProducts(products);
+  } else if (sections.all) {
+    // Original products page
     Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
     products.forEach(p => {
       if (sections.new && p.category === 'new') sections.new.appendChild(createProductCard(p));
       if (sections.hot && p.category === 'hot') sections.hot.appendChild(createProductCard(p));
       if (sections.all) sections.all.appendChild(createProductCard(p));
     });
+    attachCardListeners();
   }
 
-  // Modal bindings
-  const modal = $('checkout-modal');
+  // Bind modal if on page with checkout
+  const modal = document.getElementById('checkout-modal');
   if (modal) {
-    $('close-modal-btn').onclick = closeCheckoutModal;
-    const form = $('checkout-form');
+    document.getElementById('close-modal-btn').onclick = closeCheckoutModal;
+    const form = document.getElementById('checkout-form');
     form.addEventListener('submit', submitCheckoutOrder);
-    $('co-payment').addEventListener('change', handlePaymentChange);
-    $('co-qty').addEventListener('input', updateTotalInModal);
-    $('co-address').addEventListener('input', updateDeliveryCharge);
+    document.getElementById('co-payment').addEventListener('change', handlePaymentChange);
+    document.getElementById('co-qty').addEventListener('input', updateTotalInModal);
+    document.getElementById('co-address').addEventListener('input', updateDeliveryCharge);
   }
-
-  // Image viewer
-  const viewer = $('image-viewer');
-  const viewerImg = $('viewer-img');
-  const closeViewer = $('close-viewer');
+  // Bind image viewer
+  const viewer = document.getElementById('image-viewer');
+  const viewerImg = document.getElementById('viewer-img');
+  const closeViewer = document.getElementById('close-viewer');
   if (viewer && viewerImg && closeViewer) {
-    $$$('.product-card img').forEach(img => {
+    document.querySelectorAll('.product-card img').forEach(img => {
       img.addEventListener('click', () => {
         viewerImg.src = img.src;
         viewerImg.alt = img.alt;
@@ -156,8 +152,6 @@ async function displayProducts() {
     });
   }
 }
-
-// ====== PRODUCT CARD ======
 function createProductCard(p) {
   const isUpcoming = p.availability === 'Upcoming';
   const isOOS = !isUpcoming && Number(p.stock) <= 0 && p.availability !== 'Pre Order';
@@ -165,7 +159,6 @@ function createProductCard(p) {
   const hasDiscount = Number(p.discount) > 0;
   const price = Number(p.price) || 0;
   const finalPrice = hasDiscount ? (price - Number(p.discount)) : price;
-  const images = p.images || [p.image];
   const url = `product.html?id=${p.id}`;
   const buttonText = isPreOrder ? 'Pre Order Now' : 'Order Now';
 
@@ -173,19 +166,19 @@ function createProductCard(p) {
   card.className = 'card product-card';
   card.innerHTML = `
     <a href="${url}" class="image-link">
-      <img src="${images[0]}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
+      <img src="${p.image}" alt="${p.name}" onerror="this.src=''; this.alt='Image not available';">
     </a>
     <div class="badges">
-      ${p.category === 'new' ? `<span class="badge new">NEW</span>` : ''}
-      ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ''}
-      ${isOOS ? `<span class="badge oos">OUT OF STOCK</span>` : ''}
-      ${isUpcoming ? `<span class="badge upcoming">UPCOMING</span>` : ''}
-      ${isPreOrder ? `<span class="badge preorder">PRE ORDER</span>` : ''}
+      ${p.category === 'new' ? `<span class="badge new">NEW</span>` : ``}
+      ${p.category === 'hot' ? `<span class="badge hot">HOT</span>` : ``}
+      ${isOOS ? `<span class="badge oos">OUT OF STOCK</span>` : ``}
+      ${isUpcoming ? `<span class="badge upcoming">UPCOMING</span>` : ``}
+      ${isPreOrder ? `<span class="badge preorder">PRE ORDER</span>` : ``}
     </div>
     <h3>${p.name}</h3>
     <div class="muted">Color: ${p.color || '-'}</div>
     <div class="price">
-      ${isUpcoming ? `TBA` : `${hasDiscount ? `<s>৳${price.toFixed(2)}</s> ` : ''}৳${finalPrice.toFixed(2)}`}
+      ${isUpcoming ? `TBA` : `${hasDiscount ? `<s>৳${price.toFixed(2)}</s> ` : ``}৳${finalPrice.toFixed(2)}`}
     </div>
     <p class="desc">${p.description || ''}</p>
     <div class="order-row">
@@ -195,29 +188,25 @@ function createProductCard(p) {
   return card;
 }
 
+// ====== CARD LISTENERS ======
 function attachCardListeners() {
-  // Image → product page
   $$$('.product-card .image-link').forEach(link => {
     link.addEventListener('click', e => {
       e.preventDefault();
       navigate(link.getAttribute('href'));
     });
   });
-
-  // Order button
   $$$('.order-now-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const id = btn.dataset.id;
       const prod = products.find(p => p.id === id);
-      if (prod && !btn.disabled) {
-        openCheckoutModal(prod.id, prod.availability === 'Pre Order');
-      }
+      if (prod && !btn.disabled) openCheckoutModal(id, prod.availability === 'Pre Order');
     });
   });
 }
 
-// ====== PRODUCT DETAIL PAGE ======
+// ====== PRODUCT DETAIL RENDER ======
 function renderProductDetail(p) {
   $('product-name').textContent = p.name;
   $('product-desc').textContent = p.description || 'No description available.';
@@ -227,7 +216,6 @@ function renderProductDetail(p) {
   const btn = $('order-btn');
   btn.textContent = p.availability === 'Pre Order' ? 'Pre Order Now' : 'Order Now';
 
-  // Badges
   const badges = $('product-badges');
   badges.innerHTML = '';
   if (p.category === 'new') badges.innerHTML += '<span class="badge new">New</span>';
@@ -235,7 +223,6 @@ function renderProductDetail(p) {
   if (p.availability === 'Pre Order') badges.innerHTML += '<span class="badge preorder">Pre Order</span>';
   if (p.availability === 'Upcoming') badges.innerHTML += '<span class="badge upcoming">Upcoming</span>';
 
-  // Images
   const images = p.images || [p.image];
   $('featured-img').src = images[0];
   const thumbs = $('thumbnails');
@@ -255,6 +242,7 @@ function attachOrderButton() {
   $('order-btn').onclick = () => openCheckoutModal(currentProduct.id, currentProduct.availability === 'Pre Order');
 }
 
+// ====== RELATED PRODUCTS ======
 function renderRelatedProducts() {
   const container = $('related-products');
   if (!container) return;
@@ -266,230 +254,207 @@ function renderRelatedProducts() {
   attachCardListeners();
 }
 
-// ====== DELIVERY CHARGE ======
+// ====== DELIVERY CHARGE LOGIC ======
 function calculateDeliveryFee(address) {
-  const lower = address.toLowerCase();
-  if (lower.includes('savar')) return 70;
-  if (lower.includes('dhaka')) return 110;
+  const lowerAddr = address.toLowerCase();
+  if (lowerAddr.includes("savar")) {
+    return 70;
+  } else if (lowerAddr.includes("dhaka")) {
+    return 110;
+  }
   return 150;
 }
 function updateDeliveryCharge() {
-  const addr = $('co-address').value.trim();
-  const fee = calculateDeliveryFee(addr);
-  $('co-delivery').value = `Delivery Charge = ${fee}`;
-  $('co-delivery').dataset.fee = fee;
+  const address = document.getElementById('co-address').value.trim();
+  const deliveryFee = calculateDeliveryFee(address);
+  document.getElementById('co-delivery').value = `Delivery Charge = ${deliveryFee}`;
+  document.getElementById('co-delivery').dataset.fee = deliveryFee;
   updateTotalInModal();
 }
 
-// ====== CHECKOUT MODAL ======
+// ====== CHECKOUT MODAL FLOW ======
 async function openCheckoutModal(productId, isPreOrder = false) {
   const p = products.find(x => x.id === productId);
   if (!p) return;
   const price = p.price === 'TBA' ? 0 : Number(p.price) || 0;
   const discount = Number(p.discount) || 0;
   const unit = price - discount;
-
-  $('co-product-id').value = p.id;
-  $('co-product-name').value = p.name;
-  $('co-color').value = p.color || '';
-  $('co-price').value = unit.toFixed(2);
-  $('co-unit-price-raw').value = unit.toString();
-  $('co-available-stock').value = String(p.stock);
-  $('co-qty').value = 1;
-  $('co-qty').max = p.stock;
-  $('co-payment').value = isPreOrder ? 'Bkash' : '';
-  $('co-payment').disabled = isPreOrder;
-  $('co-payment-number').value = '';
-  $('co-txn').value = '';
-  $('co-name').value = '';
-  $('co-phone').value = '';
-  $('co-address').value = '';
-  $('co-note').textContent = isPreOrder ? '25% advance payment required.' : '';
-  $('co-policy').checked = false;
-  $('co-pay-now').style.display = 'none';
-  $('co-due-amount').style.display = 'none';
-  $('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
-  $('co-delivery').dataset.fee = DELIVERY_FEE;
-
+  document.getElementById('co-product-id').value = p.id;
+  document.getElementById('co-product-name').value = p.name;
+  document.getElementById('co-color').value = p.color || '';
+  document.getElementById('co-price').value = unit.toFixed(2);
+  document.getElementById('co-unit-price-raw').value = unit.toString();
+  document.getElementById('co-available-stock').value = String(p.stock);
+  document.getElementById('co-qty').value = 1;
+  document.getElementById('co-qty').max = p.stock;
+  document.getElementById('co-payment').value = isPreOrder ? 'Bkash' : '';
+  document.getElementById('co-payment').disabled = isPreOrder;
+  document.getElementById('co-payment-number').value = '';
+  document.getElementById('co-txn').value = '';
+  document.getElementById('co-name').value = '';
+  document.getElementById('co-phone').value = '';
+  document.getElementById('co-address').value = '';
+  document.getElementById('co-note').textContent = isPreOrder ? '25% advance payment is required for pre-orders.' : '';
+  document.getElementById('co-policy').checked = false;
+  document.getElementById('co-pay-now').style.display = 'none';
+  document.getElementById('co-due-amount').style.display = 'none';
+  document.getElementById('co-delivery').value = `Delivery Charge = ${DELIVERY_FEE}`;
+  document.getElementById('co-delivery').dataset.fee = DELIVERY_FEE;
   updateTotalInModal();
-  $('checkout-modal').classList.add('show');
+  document.getElementById('checkout-modal').classList.add('show');
 }
 function closeCheckoutModal() {
-  $('checkout-modal').classList.remove('show');
+  document.getElementById('checkout-modal').classList.remove('show');
 }
 function handlePaymentChange() {
-  const method = $('co-payment').value;
-  $('co-payment-number').value = method === 'Bkash' ? BKASH_NUMBER : COD_NUMBER;
+  const method = document.getElementById('co-payment').value;
+  const paymentNumber = document.getElementById('co-payment-number');
+  paymentNumber.value = method === 'Bkash' ? BKASH_NUMBER : COD_NUMBER;
   updateTotalInModal();
 }
 function updateTotalInModal() {
-  const qty = Number($('co-qty').value) || 1;
-  const unit = Number($('co-unit-price-raw').value) || 0;
-  const delivery = Number($('co-delivery').dataset.fee) || DELIVERY_FEE;
-  const total = unit * qty + delivery;
-  $('co-total').value = total.toFixed(2);
-
-  const isPreOrder = $('co-payment').disabled;
-  const method = $('co-payment').value;
-  const payNowEl = $('co-pay-now');
-  const dueEl = $('co-due-amount');
-
+  const qty = Number(document.getElementById('co-qty').value) || 1;
+  const unit = Number(document.getElementById('co-unit-price-raw').value) || 0;
+  const deliveryFee = Number(document.getElementById('co-delivery').dataset.fee) || DELIVERY_FEE;
+  const total = unit * qty + deliveryFee;
+  document.getElementById('co-total').value = total.toFixed(2);
+  const method = document.getElementById('co-payment').value;
+  const isPreOrder = document.getElementById('co-payment').disabled;
+  const payNowEl = document.getElementById('co-pay-now');
+  const dueAmountEl = document.getElementById('co-due-amount');
   if (isPreOrder || method === 'Bkash') {
     payNowEl.style.display = 'block';
-    dueEl.style.display = 'block';
-    const payNow = isPreOrder ? total * 0.25 : total;
+    dueAmountEl.style.display = 'block';
+    const payNow = isPreOrder ? (total * 0.25) : total;
     const due = total - payNow;
     payNowEl.value = payNow.toFixed(2);
-    dueEl.value = due.toFixed(2);
+    dueAmountEl.value = due.toFixed(2);
   } else {
     payNowEl.style.display = 'none';
-    dueEl.style.display = 'none';
+    dueAmountEl.style.display = 'none';
   }
 }
 async function submitCheckoutOrder(e) {
   e.preventDefault();
-  if (!$('co-policy').checked) return alert('You must agree to the policy.');
-
-  const productId = $('co-product-id').value;
-  const qty = Number($('co-qty').value);
-  const stock = Number($('co-available-stock').value);
-  const isPreOrder = $('co-payment').disabled;
-
-  if (!isPreOrder && qty > stock) return alert(`Only ${stock} in stock.`);
-
+  const policy = document.getElementById('co-policy');
+  if (!policy.checked) return alert('You must agree to the order policy.');
+  const productId = document.getElementById('co-product-id').value;
+  const quantity = Number(document.getElementById('co-qty').value);
+  const availableStock = Number(document.getElementById('co-available-stock').value);
+  const isPreOrder = document.getElementById('co-payment').disabled;
+  if (!isPreOrder && quantity > availableStock) return alert(`Only ${availableStock} in stock.`);
   const order = {
-    productId,
-    productName: $('co-product-name').value,
-    color: $('co-color').value,
-    quantity: qty,
-    unitPrice: Number($('co-unit-price-raw').value),
-    deliveryFee: Number($('co-delivery').dataset.fee),
-    total: Number($('co-total').value),
-    paid: Number($('co-pay-now').value) || 0,
-    due: Number($('co-due-amount').value) || Number($('co-total').value),
-    customerName: $('co-name').value,
-    phone: $('co-phone').value,
-    address: $('co-address').value,
-    paymentMethod: $('co-payment').value,
-    transactionId: $('co-txn').value,
+    productId: productId,
+    productName: document.getElementById('co-product-name').value,
+    color: document.getElementById('co-color').value,
+    quantity: quantity,
+    unitPrice: Number(document.getElementById('co-unit-price-raw').value),
+    deliveryFee: Number(document.getElementById('co-delivery').dataset.fee),
+    total: Number(document.getElementById('co-total').value),
+    paid: Number(document.getElementById('co-pay-now').value) || 0,
+    due: Number(document.getElementById('co-due-amount').value) || Number(document.getElementById('co-total').value),
+    customerName: document.getElementById('co-name').value,
+    phone: document.getElementById('co-phone').value,
+    address: document.getElementById('co-address').value,
+    paymentMethod: document.getElementById('co-payment').value,
+    transactionId: document.getElementById('co-txn').value,
     status: 'Pending',
     timeISO: new Date().toISOString()
   };
-
   try {
     await addDoc(collection(db, 'orders'), order);
     if (!isPreOrder) {
-      await runTransaction(db, async (tx) => {
-        const ref = doc(db, 'products', productId);
-        const snap = await tx.get(ref);
-        const newStock = snap.data().stock - qty;
-        tx.update(ref, { stock: newStock });
+      await runTransaction(db, async (transaction) => {
+        const productRef = doc(db, 'products', productId);
+        const productDoc = await transaction.get(productRef);
+        if (!productDoc.exists()) {
+          throw 'Product does not exist!';
+        }
+        const newStock = productDoc.data().stock - quantity;
+        transaction.update(productRef, { stock: newStock });
       });
     }
-    alert('Order placed!');
+    alert('Order placed successfully!');
     closeCheckoutModal();
   } catch (err) {
-    alert('Error: ' + err.message);
+    console.error('Error placing order:', err);
+    alert('Error placing order: ' + err.message);
   }
-}
-
-// ====== ADMIN: ADD PRODUCT ======
-function addProduct(e) {
-  e.preventDefault();
-  const imagesInput = $('add-image').value.trim();
-  const images = imagesInput.split(',').map(s => s.trim()).filter(Boolean);
-  if (!images.length) return alert('Add at least one image URL');
-
-  const product = {
-    name: $('add-name').value.trim(),
-    price: parseFloat($('add-price').value),
-    discount: parseFloat($('add-discount').value) || 0,
-    images,
-    image: images[0],
-    mainCategory: $('add-main-category').value,
-    category: $('add-category').value,
-    color: $('add-color').value.trim() || null,
-    stock: parseInt($('add-stock').value) || 0,
-    availability: $('add-availability').value,
-    description: $('add-desc').value.trim(),
-    slug: generateSlug($('add-name').value, $('add-color').value),
-    timestamp: serverTimestamp()
-  };
-
-  addDoc(collection(db, 'products'), product)
-    .then(() => {
-      alert('Product added!');
-      e.target.reset();
-      renderDataTable();
-    })
-    .catch(err => alert('Error: ' + err.message));
 }
 
 // ====== ADMIN: PRODUCTS TABLE ======
 async function renderDataTable() {
-  const tbody = $('products-body');
+  const tbody = document.getElementById('products-body');
   if (!tbody) return;
-  await loadProducts();
+  const products = await loadProducts();
   tbody.innerHTML = '';
   products.forEach(p => {
     const tr = document.createElement('tr');
+    // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
-    tdToggle.onclick = () => {
-      const row = tr.nextElementSibling;
-      row.classList.toggle('show');
-      tdToggle.textContent = row.classList.contains('show') ? '▲' : '▼';
-    };
+    tdToggle.addEventListener('click', (e) => {
+      const detailsRow = e.target.closest('tr').nextElementSibling;
+      const isVisible = detailsRow.classList.contains('show');
+      detailsRow.classList.toggle('show', !isVisible);
+      e.target.textContent = isVisible ? '▼' : '▲';
+    });
     tr.appendChild(tdToggle);
-
-    ['name', 'price', 'category', 'color', 'discount', 'stock', 'availability'].forEach(field => {
+    // Main columns
+    const cols = ['name', 'price', 'category', 'color', 'discount', 'stock', 'availability'];
+    cols.forEach(field => {
       const td = document.createElement('td');
       td.contentEditable = true;
-      td.textContent = p[field] ?? '';
-      td.onblur = async () => {
-        const val = td.textContent.trim();
-        if (val !== String(p[field] ?? '')) {
-          await updateProductField(p.id, field, val);
-        }
-      };
+      td.textContent = p[field] != null ? String(p[field]) : '';
+      td.addEventListener('blur', async (e) => {
+        const val = e.target.textContent.trim();
+        if (val === (p[field] != null ? String(p[field]) : '')) return;
+        await updateProductField(p.id, field, val);
+      });
       tr.appendChild(td);
     });
-
+    // Status
     const tdStatus = document.createElement('td');
     tdStatus.textContent = computeStatus(p);
     tr.appendChild(tdStatus);
-
+    // Actions column
     const tdActions = document.createElement('td');
-    const delBtn = document.createElement('button');
-    delBtn.className = 'danger';
-    delBtn.textContent = 'Delete';
-    delBtn.onclick = () => confirm(`Delete "${p.name}"?`) && deleteProductById(p.id);
-    tdActions.appendChild(delBtn);
+    const del = document.createElement('button');
+    del.className = 'danger';
+    del.textContent = 'Delete';
+    del.addEventListener('click', async () => {
+      if (confirm(`Delete "${p.name}"?`)) await deleteProductById(p.id);
+    });
+    tdActions.appendChild(del);
     tr.appendChild(tdActions);
     tbody.appendChild(tr);
-
-    // Details row
+    // Details row for Image URL and Description
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
-    detailsCell.colSpan = 10;
+    detailsCell.colSpan = 10; // Span across toggle, cols, status, and actions
     detailsCell.className = 'details-content';
-
-    const imgDiv = document.createElement('div');
-    imgDiv.contentEditable = true;
-    imgDiv.textContent = p.image || '';
-    imgDiv.onblur = () => updateProductField(p.id, 'image', imgDiv.textContent.trim());
-
-    const descDiv = document.createElement('div');
-    descDiv.contentEditable = true;
-    descDiv.textContent = p.description || '';
-    descDiv.onblur = () => updateProductField(p.id, 'description', descDiv.textContent.trim());
-
+    const imageCell = document.createElement('div');
+    imageCell.contentEditable = true;
+    imageCell.textContent = p.image != null ? p.image : '';
+    imageCell.addEventListener('blur', async (e) => {
+      const val = e.target.textContent.trim();
+      if (val === (p.image != null ? String(p.image) : '')) return;
+      await updateProductField(p.id, 'image', val);
+    });
+    const descCell = document.createElement('div');
+    descCell.contentEditable = true;
+    descCell.textContent = p.description != null ? p.description : '';
+    descCell.addEventListener('blur', async (e) => {
+      const val = e.target.textContent.trim();
+      if (val === (p.description != null ? String(p.description) : '')) return;
+      await updateProductField(p.id, 'description', val);
+    });
     detailsCell.innerHTML = `<strong>Image URL:</strong> `;
-    detailsCell.appendChild(imgDiv);
+    detailsCell.appendChild(imageCell);
     detailsCell.innerHTML += `<br><strong>Description:</strong> `;
-    detailsCell.appendChild(descDiv);
+    detailsCell.appendChild(descCell);
     detailsRow.appendChild(detailsCell);
     tbody.appendChild(detailsRow);
   });
@@ -503,7 +468,8 @@ async function updateProductField(id, field, value) {
   try {
     await updateDoc(doc(db, 'products', id), { [field]: value });
   } catch (err) {
-    alert('Update failed: ' + err.message);
+    console.error('Error updating product:', err);
+    alert('Error updating product: ' + err.message);
   }
 }
 async function deleteProductById(id) {
@@ -511,29 +477,33 @@ async function deleteProductById(id) {
     await deleteDoc(doc(db, 'products', id));
     renderDataTable();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
+    console.error('Error deleting product:', err);
+    alert('Error deleting product: ' + err.message);
   }
 }
 
 // ====== ADMIN: ORDERS TABLE ======
 async function renderOrdersTable() {
-  const tbody = $('orders-body');
+  const tbody = document.getElementById('orders-body');
   if (!tbody) return;
   const orders = await loadOrders();
   tbody.innerHTML = '';
   orders.forEach(o => {
     const tr = document.createElement('tr');
+   
+    // Toggle button cell
     const tdToggle = document.createElement('td');
     tdToggle.className = 'toggle-details';
     tdToggle.innerHTML = '▼';
-    tdToggle.onclick = () => {
-      const row = tr.nextElementSibling;
-      row.classList.toggle('show');
-      tdToggle.textContent = row.classList.contains('show') ? '▲' : '▼';
-    };
+    tdToggle.addEventListener('click', (e) => {
+      const detailsRow = e.target.closest('tr').nextElementSibling;
+      const isVisible = detailsRow.classList.contains('show');
+      detailsRow.classList.toggle('show', !isVisible);
+      e.target.textContent = isVisible ? '▼' : '▲';
+    });
     tr.appendChild(tdToggle);
-
-    const fields = [
+    // Main columns
+    const tds = [
       new Date(o.timeISO).toLocaleString(),
       o.productName,
       o.color,
@@ -547,116 +517,125 @@ async function renderOrdersTable() {
       o.paymentMethod,
       o.transactionId
     ];
-    fields.forEach(v => {
+    tds.forEach(v => {
       const td = document.createElement('td');
       td.textContent = v;
       tr.appendChild(td);
     });
-
+    // Status dropdown
     const tdStatus = document.createElement('td');
     const select = document.createElement('select');
-    ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s; opt.textContent = s;
-      if (o.status === s) opt.selected = true;
-      select.appendChild(opt);
+    ['Pending', 'Processing', 'Dispatched', 'Delivered', 'Cancelled'].forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.text = opt;
+      if (o.status === opt) option.selected = true;
+      select.appendChild(option);
     });
     select.style.backgroundColor = statusColors[o.status || 'Pending'];
-    select.onchange = async () => {
-      await updateDoc(doc(db, 'orders', o.id), { status: select.value });
-      select.style.backgroundColor = statusColors[select.value];
-    };
+    select.addEventListener('change', async (e) => {
+      try {
+        const newStatus = e.target.value;
+        await updateDoc(doc(db, 'orders', o.id), { status: newStatus });
+        select.style.backgroundColor = statusColors[newStatus];
+      } catch (err) {
+        console.error('Error updating order status:', err);
+        alert('Error updating order status: ' + err.message);
+      }
+    });
     tdStatus.appendChild(select);
     tr.appendChild(tdStatus);
     tbody.appendChild(tr);
-
+    // Details row for Unit Price
     const detailsRow = document.createElement('tr');
     detailsRow.className = 'details-row';
     const detailsCell = document.createElement('td');
-    detailsCell.colSpan = 14;
-    detailsCell.innerHTML = `Unit Price: ৳${Number(o.unitPrice).toFixed(2)}`;
+    detailsCell.colSpan = 14; // Span across toggle, main columns, and status
+    detailsCell.className = 'details-content';
+    const unitPriceCell = document.createElement('div');
+    unitPriceCell.textContent = `Unit Price: ৳${Number(o.unitPrice).toFixed(2)}`;
+    detailsCell.appendChild(unitPriceCell);
     detailsRow.appendChild(detailsCell);
     tbody.appendChild(detailsRow);
   });
 }
 
-// ====== ADMIN: AUTH ======
+// ====== AUTH ======
 function logoutAdmin() {
-  signOut(auth).catch(err => alert('Logout failed: ' + err.message));
+  try {
+    signOut(auth);
+    console.log('Logged out successfully');
+  } catch (err) {
+    console.error('Logout error:', err);
+    alert('Error logging out: ' + err.message);
+  }
 }
 
-// ====== STATUS PAGE ======
+// ====== ORDER STATUS PAGE ======
 function setupStatusForm() {
-  const form = $('status-form');
+  const form = document.getElementById('status-form');
   if (!form) return;
-  form.onsubmit = async (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const txn = $('txn-id').value.trim();
+    const txn = document.getElementById('txn-id').value.trim();
     if (!txn) return;
-    const q = query(collection(db, 'orders'), where('transactionId', '==', txn));
-    const snap = await getDocs(q);
-    if (snap.empty) return alert('Order not found.');
-    const o = snap.docs[0].data();
-    alert(`Status: ${o.status}\n${statusExplanations[o.status] || ''}`);
-  };
+    try {
+      const q = query(collection(db, 'orders'), where('transactionId', '==', txn));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) {
+        alert('Order not found.');
+        return;
+      }
+      const order = snapshot.docs[0].data();
+      const status = order.status;
+      alert(`Status: ${status}\n${statusExplanations[status] || 'Unknown status.'}`);
+    } catch (err) {
+      console.error('Error fetching status:', err);
+      alert('Error fetching status: ' + err.message);
+    }
+  });
 }
-
-// ====== EDIT MODAL (stub – implement UI as needed) ======
-window.openEditModal = (id) => {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  $('edit-id').value = p.id;
-  $('edit-name').value = p.name;
-  $('edit-price').value = p.price;
-  $('edit-discount').value = p.discount || 0;
-  $('edit-image').value = (p.images || [p.image]).join(', ');
-  $('edit-main-category').value = p.mainCategory;
-  $('edit-category').value = p.category;
-  $('edit-color').value = p.color || '';
-  $('edit-stock').value = p.stock || 0;
-  $('edit-availability').value = p.availability;
-  $('edit-desc').value = p.description || '';
-  $('edit-modal').classList.add('show');
-};
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadProducts();
+  // Common
   displayProducts();
-
-  const loginPanel = $('login-panel');
-  const adminPanel = $('admin-panel');
-  const addForm = $('add-product-form');
-
-  if (addForm) addForm.onsubmit = addProduct;
-
+  // Admin page
+  const loginPanel = document.getElementById('login-panel');
+  const adminPanel = document.getElementById('admin-panel');
+  const addForm = document.getElementById('add-product-form');
+  if (addForm) addForm.addEventListener('submit', addProduct);
   if (loginPanel && adminPanel) {
     onAuthStateChanged(auth, async (user) => {
       if (user) {
+        console.log('User logged in:', user.email);
         loginPanel.style.display = 'none';
         adminPanel.style.display = 'block';
         await renderDataTable();
         await renderOrdersTable();
       } else {
+        console.log('No user logged in');
         loginPanel.style.display = 'block';
         adminPanel.style.display = 'none';
       }
     });
-
-    const loginForm = $('login-form');
+    const loginForm = document.getElementById('login-form');
     if (loginForm) {
-      loginForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const email = $('admin-email').value;
-        const pass = $('admin-pass').value;
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent page refresh
+        const email = document.getElementById('admin-email').value;
+        const pass = document.getElementById('admin-pass').value;
+        console.log('Attempting login with email:', email);
         try {
           await signInWithEmailAndPassword(auth, email, pass);
+          console.log('Login successful');
         } catch (err) {
+          console.error('Login failed:', err);
           alert('Login failed: ' + err.message);
         }
-      };
+      });
     }
   }
-
+  // Status page
   setupStatusForm();
 });
