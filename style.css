@@ -492,3 +492,40 @@ footer {
   .main-image { height: 300px; }
   .categories { grid-template-columns: 1fr; }
 }
+/* Add to style.css */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  position: relative;
+}
+
+.product-card .image-link {
+  display: block;
+  cursor: pointer;
+}
+
+.product-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #eee;
+}
+
+.order-now-btn {
+  margin-top: auto;
+  background: var(--form-accent);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.order-now-btn:hover {
+  background: #2563eb;
+}
