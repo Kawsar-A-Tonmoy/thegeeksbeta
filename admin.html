@@ -13,13 +13,8 @@
       <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
       <div class="nav-links">
         <a href="index.html">Home</a>
-        <a href="products.html">Products</a>
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
-      </div>
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search products...">
-        <button id="search-btn">Search</button>
       </div>
     </nav>
   </header>
@@ -28,14 +23,8 @@
     <div id="login-panel" class="card" style="display: none;">
       <h2>Admin Login</h2>
       <form id="login-form" class="form">
-        <div>
-          <label>Email</label>
-          <input id="admin-email" type="email" required>
-        </div>
-        <div>
-          <label>Password</label>
-          <input id="admin-pass" type="password" required>
-        </div>
+        <div><label>Email</label><input id="admin-email" type="email" required></div>
+        <div><label>Password</label><input id="admin-pass" type="password" required></div>
         <button type="submit">Login</button>
       </form>
     </div>
@@ -43,63 +32,42 @@
     <div id="admin-panel" class="card" style="display: none;">
       <div class="panel-header">
         <h2>Admin Panel</h2>
-        <button onclick="logoutAdmin()">Logout</button>
+        <button onclick="logoutAdmin()" class="secondary">Logout</button>
       </div>
 
       <h2>Add Product</h2>
       <form id="add-product-form" class="form">
         <div class="row">
-          <div>
-            <label>Name</label>
-            <input id="add-name" required>
-          </div>
-          <div>
-            <label>Price (tk)</label>
-            <input id="add-price" required>
-          </div>
+          <div><label>Name</label><input id="add-name" required></div>
+          <div><label>Price (tk)</label><input id="add-price" type="number" required></div>
         </div>
         <div class="row">
-          <div>
-            <label>Discount (tk)</label>
-            <input id="add-discount" value="0">
-          </div>
-          <div>
-            <label>Image URLs (comma-separated)</label>
-            <input id="add-image" required>
-          </div>
+          <div><label>Discount (tk)</label><input id="add-discount" type="number" value="0"></div>
+          <div><label>Image URLs (comma-separated)</label><input id="add-image" placeholder="https://..." required></div>
         </div>
         <div class="row">
-          <div>
-            <label>Badge Category</label>
+          <div><label>Main Category</label>
+            <select id="add-main-category" required>
+              <option value="keycaps">Keycaps</option>
+              <option value="switches">Switches</option>
+              <option value="keyboard-barebones">Keyboard & Barebones</option>
+              <option value="collectables">Collectables</option>
+            </select>
+          </div>
+          <div><label>Tag</label>
             <select id="add-category" required>
               <option value="all">All</option>
               <option value="new">New</option>
               <option value="hot">Hot</option>
             </select>
           </div>
-          <div>
-            <label>Main Category</label>
-            <select id="add-main-category" required>
-              <option value="Keycaps">Keycaps</option>
-              <option value="Switches">Switches</option>
-              <option value="Keyboard and BareBones">Keyboard and BareBones</option>
-              <option value="Collectables">Collectables</option>
-            </select>
-          </div>
         </div>
         <div class="row">
-          <div>
-            <label>Color</label>
-            <input id="add-color">
-          </div>
-          <div>
-            <label>Stock</label>
-            <input id="add-stock" type="number" value="0">
-          </div>
+          <div><label>Color</label><input id="add-color"></div>
+          <div><label>Stock</label><input id="add-stock" type="number" value="0"></div>
         </div>
         <div class="row">
-          <div>
-            <label>Availability</label>
+          <div><label>Availability</label>
             <select id="add-availability" required>
               <option value="Ready">Ready to Order</option>
               <option value="Pre Order">Pre Order</option>
@@ -107,10 +75,7 @@
             </select>
           </div>
         </div>
-        <div>
-          <label>Description</label>
-          <textarea id="add-desc"></textarea>
-        </div>
+        <div><label>Description</label><textarea id="add-desc" rows="4"></textarea></div>
         <button type="submit">Add Product</button>
       </form>
 
@@ -119,17 +84,15 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th></th>
+              <th>Img</th>
               <th>Name</th>
               <th>Price</th>
-              <th>Badge Category</th>
-              <th>Main Category</th>
+              <th>Cat</th>
+              <th>Tag</th>
               <th>Color</th>
-              <th>Discount (tk)</th>
+              <th>Disc</th>
               <th>Stock</th>
-              <th>Availability</th>
-              <th>Slug</th>
-              <th>Status</th>
+              <th>Avail</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -142,19 +105,15 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th></th>
+              <th>ID</th>
               <th>Time</th>
               <th>Product</th>
               <th>Color</th>
               <th>Qty</th>
-              <th>Delivery</th>
               <th>Paid</th>
               <th>Due</th>
               <th>Name</th>
               <th>Phone</th>
-              <th>Address</th>
-              <th>Payment</th>
-              <th>Txn ID</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -163,5 +122,14 @@
       </div>
     </div>
   </main>
+
+  <footer>
+    <div class="footer-social">
+      <a href="https://www.facebook.com/thegeek.shop0" target="_blank"><img src="facebook.png" alt="Facebook"></a>
+      <a href="https://www.instagram.com/thegeekshop.0" target="_blank"><img src="instagram.png" alt="Instagram"></a>
+      <a href="https://wa.me/01960788862" target="_blank"><img src="whatsapp.png" alt="WhatsApp"></a>
+    </div>
+    <p>© All rights reserved by The Geek Shop</p>
+  </footer>
 </body>
 </html>
