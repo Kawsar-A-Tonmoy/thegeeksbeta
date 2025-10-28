@@ -3,73 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - The Geek Shop</title>
+  <title>Admin</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js" type="module"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+  </script>
+  <script type="module" src="script.js"></script>
 </head>
 <body>
   <header class="site-header">
-    <nav>
-      <div class="logo"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></div>
+     <nav>
+      <a href="index.html" class="logo">
+        <img src="logo.png" alt="The Geek Shop Logo" style="height: 40px;">
+      </a>
       <div class="nav-links">
-        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
         <a href="status.html">Order Status</a>
         <a href="admin.html">Admin</a>
       </div>
     </nav>
   </header>
 
+ 
   <main class="container">
-    <!-- Login Panel -->
-    <div id="login-panel" class="card">
+    <div id="login-panel" class="card" style="display: none;">
       <h2>Admin Login</h2>
       <form id="login-form" class="form">
-        <div><label>Email</label><input id="admin-email" type="email" required></div>
-        <div><label>Password</label><input id="admin-pass" type="password" required></div>
+        <div>
+          <label>Email</label>
+          <input id="admin-email" type="email" required>
+        </div>
+        <div>
+          <label>Password</label>
+          <input id="admin-pass" type="password" required>
+        </div>
         <button type="submit">Login</button>
       </form>
     </div>
 
-    <!-- Admin Panel -->
     <div id="admin-panel" class="card" style="display: none;">
       <div class="panel-header">
         <h2>Admin Panel</h2>
-        <button id="logout-btn" class="secondary">Logout</button>
+        <button onclick="logoutAdmin()">Logout</button>
       </div>
 
       <h2>Add Product</h2>
       <form id="add-product-form" class="form">
         <div class="row">
-          <div><label>Name</label><input id="add-name" required></div>
-          <div><label>Price (tk)</label><input id="add-price" type="number" required></div>
-        </div>
-        <div class="row">
-          <div><label>Discount (tk)</label><input id="add-discount" type="number" value="0"></div>
-          <div><label>Image URLs (comma-separated)</label><input id="add-image" placeholder="https://..." required></div>
-        </div>
-        <div class="row">
-          <div><label>Main Category</label>
-            <select id="add-main-category" required>
-              <option value="keycaps">Keycaps</option>
-              <option value="switches">Switches</option>
-              <option value="keyboard-barebones">Keyboard & Barebones</option>
-              <option value="collectables">Collectables</option>
-            </select>
+          <div>
+            <label>Name</label>
+            <input id="add-name" required>
           </div>
-          <div><label>Tag</label>
+          <div>
+            <label>Price (tk)</label>
+            <input id="add-price" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Discount (tk)</label>
+            <input id="add-discount" value="0">
+          </div>
+          <div>
+            <label>Image URLs (comma-separated)</label>
+            <input id="add-images" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Category</label>
             <select id="add-category" required>
-              <option value="all">All</option>
-              <option value="new">New</option>
-              <option value="hot">Hot</option>
+              <option value="Keycaps">Keycaps</option>
+              <option value="Switches">Switches</option>
+              <option value="Keyboards and Barebones">Keyboards and Barebones</option>
+              <option value="Accessories and Collectables">Accessories and Collectables</option>
             </select>
+          </div>
+          <div>
+            <label>Color</label>
+            <input id="add-color">
           </div>
         </div>
         <div class="row">
-          <div><label>Color</label><input id="add-color"></div>
-          <div><label>Stock</label><input id="add-stock" type="number" value="0"></div>
-        </div>
-        <div class="row">
-          <div><label>Availability</label>
+          <div>
+            <label>Stock</label>
+            <input id="add-stock" type="number" value="0">
+          </div>
+          <div>
+            <label>Availability</label>
             <select id="add-availability" required>
               <option value="Ready">Ready to Order</option>
               <option value="Pre Order">Pre Order</option>
@@ -77,7 +100,10 @@
             </select>
           </div>
         </div>
-        <div><label>Description</label><textarea id="add-desc" rows="4"></textarea></div>
+        <div>
+          <label>Description</label>
+          <textarea id="add-desc"></textarea>
+        </div>
         <button type="submit">Add Product</button>
       </form>
 
@@ -86,15 +112,15 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Img</th>
+              <th></th>
               <th>Name</th>
               <th>Price</th>
-              <th>Main Cat</th>
-              <th>Tag</th>
+              <th>Category</th>
               <th>Color</th>
-              <th>Disc</th>
+              <th>Discount (tk)</th>
               <th>Stock</th>
-              <th>Avail</th>
+              <th>Availability</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -107,15 +133,19 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
+              <th></th>
               <th>Time</th>
               <th>Product</th>
               <th>Color</th>
               <th>Qty</th>
+              <th>Delivery</th>
               <th>Paid</th>
               <th>Due</th>
               <th>Name</th>
               <th>Phone</th>
+              <th>Address</th>
+              <th>Payment</th>
+              <th>Txn ID</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -123,68 +153,7 @@
         </table>
       </div>
     </div>
-
-    <!-- Edit Modal -->
-    <div id="edit-modal" class="modal">
-      <div class="card modal-content">
-        <div class="modal-header">
-          <h2>Edit Product</h2>
-          <button id="close-edit-btn">Close</button>
-        </div>
-        <form id="edit-product-form" class="form">
-          <input type="hidden" id="edit-id">
-          <div class="row">
-            <div><label>Name</label><input id="edit-name" required></div>
-            <div><label>Price (tk)</label><input id="edit-price" type="number" required></div>
-          </div>
-          <div class="row">
-            <div><label>Discount (tk)</label><input id="edit-discount" type="number"></div>
-            <div><label>Image URLs</label><input id="edit-image" required></div>
-          </div>
-          <div class="row">
-            <div><label>Main Category</label>
-              <select id="edit-main-category" required>
-                <option value="keycaps">Keycaps</option>
-                <option value="switches">Switches</option>
-                <option value="keyboard-barebones">Keyboard & Barebones</option>
-                <option value="collectables">Collectables</option>
-              </select>
-            </div>
-            <div><label>Tag</label>
-              <select id="edit-category" required>
-                <option value="all">All</option>
-                <option value="new">New</option>
-                <option value="hot">Hot</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div><label>Color</label><input id="edit-color"></div>
-            <div><label>Stock</label><input id="edit-stock" type="number"></div>
-          </div>
-          <div class="row">
-            <div><label>Availability</label>
-              <select id="edit-availability" required>
-                <option value="Ready">Ready to Order</option>
-                <option value="Pre Order">Pre Order</option>
-                <option value="Upcoming">Upcoming</option>
-              </select>
-            </div>
-          </div>
-          <div><label>Description</label><textarea id="edit-desc" rows="4"></textarea></div>
-          <button type="submit">Update Product</button>
-        </form>
-      </div>
-    </div>
   </main>
-
-  <footer>
-    <div class="footer-social">
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank"><img src="facebook.png" alt="Facebook"></a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank"><img src="instagram.png" alt="Instagram"></a>
-      <a href="https://wa.me/01960788862" target="_blank"><img src="whatsapp.png" alt="WhatsApp"></a>
-    </div>
-    <p>© All rights reserved by The Geek Shop</p>
-  </footer>
 </body>
+
 </html>

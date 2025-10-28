@@ -1,127 +1,37 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - The Geek Shop</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
-  <script src="script.js" type="module"></script>
+  <title>Login/Register</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="site-header">
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-      <div class="logo">
-        <a href="index.html"><img src="https://i.ibb.co/2nRwX9G/logo.png" alt="Logo" width="50"></a>
-      </div>
-      <div class="nav-links flex gap-4">
-        <a href="index.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Home</a>
-        <a href="products.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Products</a>
-        <a href="cart.html" class="px-3 py-2 rounded-lg hover:bg-gray-200 relative">
-          Cart <span id="cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-1"></span>
-        </a>
-        <a href="status.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Order Status</a>
-        <span id="user-auth">
-          <a href="login.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Login</a>
-        </span>
-        <a href="admin.html" class="px-3 py-2 rounded-lg hover:bg-gray-200">Admin</a>
-      </div>
-      <form id="search-form" class="flex ml-4">
-        <input id="search-query" type="text" placeholder="Search products..." class="p-2 border border-r-0 rounded-l-lg focus:outline-none focus:border-blue-500">
-        <button type="submit" class="bg-blue-600 text-white p-2 rounded-r-lg">🔍</button>
-      </form>
+  <header class="header">
+    <div class="logo">Keyboard Shop</div>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="cart.html">Cart</a>
     </nav>
   </header>
-
-  <main class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="card">
-      <h2 class="text-2xl font-bold mb-4">User Login</h2>
-      <form id="user-login-form" class="form grid gap-4">
-        <div>
-          <label class="block font-medium">Email</label>
-          <input id="user-email" type="email" class="w-full p-2 border rounded-lg" required>
-        </div>
-        <div>
-          <label class="block font-medium">Password</label>
-          <input id="user-pass" type="password" class="w-full p-2 border rounded-lg" required>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Login</button>
-      </form>
-      <p class="mt-4">Don't have an account? <button id="switch-to-register" class="text-blue-600 underline">Register</button></p>
-    </div>
-
-    <div id="register-panel" class="card" style="display: none;">
-      <h2 class="text-2xl font-bold mb-4">User Registration</h2>
-      <form id="user-register-form" class="form grid gap-4">
-        <div>
-          <label class="block font-medium">Email</label>
-          <input id="register-email" type="email" class="w-full p-2 border rounded-lg" required>
-        </div>
-        <div>
-          <label class="block font-medium">Password</label>
-          <input id="register-pass" type="password" class="w-full p-2 border rounded-lg" required>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Register</button>
-      </form>
-      <p class="mt-4">Already have an account? <button id="switch-to-login" class="text-blue-600 underline">Login</button></p>
-    </div>
-  </main>
-
-  <footer class="bg-gray-100 py-4 text-center text-sm">
-    <div class="flex justify-center gap-4 mb-2">
-      <a href="https://www.facebook.com/thegeek.shop0" target="_blank">
-        <img src="facebook.png" alt="Facebook" class="w-6 h-6">
-      </a>
-      <a href="https://www.instagram.com/thegeekshop.0" target="_blank">
-        <img src="instagram.png" alt="Instagram" class="w-6 h-6">
-      </a>
-      <a href="https://wa.me/01960788862" target="_blank">
-        <img src="whatsapp.png" alt="WhatsApp" class="w-6 h-6">
-      </a>
-    </div>
-    <p>&copy; All rights reserved by The Geek Shop</p>
-  </footer>
+  <section>
+    <h2>Register</h2>
+    <form id="registerForm">
+      <input id="phone" placeholder="Phone Number" required>
+      <input id="email" type="email" placeholder="Email" required>
+      <input id="address" placeholder="Address" required>
+      <input id="password" type="password" placeholder="Password" required>
+      <button type="submit" class="button">Register</button>
+    </form>
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input id="loginId" placeholder="Email or Phone" required>
+      <input id="password" type="password" placeholder="Password" required>
+      <button type="submit" class="button">Login</button>
+    </form>
+  </section>
+  <footer>© 2025 Keyboard Shop</footer>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
 </body>
 </html>
