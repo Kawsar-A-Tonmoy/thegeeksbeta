@@ -30,7 +30,7 @@ const statusColors = {
 const categories = [
   { name: 'Keycaps', bg: 'k.png' },
   { name: 'Switches', bg: 's.png' },
-  { name: 'Keyboards and Barebones', bg: 'k&b.png' },
+  { name: 'Keyboard and Mouse', bg: 'k&b.png' },
   { name: 'Accessories and Collectables', bg: 'c&a.png' }
 ];
 
@@ -895,3 +895,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
+
