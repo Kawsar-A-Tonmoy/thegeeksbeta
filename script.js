@@ -291,7 +291,7 @@ async function initProductPage() {
   `;
 
   specEl.innerText = product.description || '';
-  descEl.innerHTML = product.detailedDescription ? product.detailedDescription.replace(/\n/g, '<br>') : '';
+  descEl.innerHTML = product.detailedDescription || '';
 
   const button = document.createElement('button');
   if (isUpcoming) {
@@ -954,5 +954,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
   }
+
 
 });
