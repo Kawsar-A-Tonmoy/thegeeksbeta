@@ -1053,9 +1053,6 @@ async function initCheckoutPage() {
     codRadio.disabled = true;
     codRadio.parentElement?.classList.add('opacity-30', 'pointer-events-none');
     if (bkashRadio) bkashRadio.checked = true;
-  } else if (codRadio) {
-    codRadio.disabled = false;
-    codRadio.parentElement?.classList.remove('opacity-30', 'pointer-events-none');
   }
 
   function updateCheckoutTotals() {
@@ -1074,31 +1071,44 @@ async function initCheckoutPage() {
     const txnContainer = document.getElementById('txn-container');
     const paymentNote = document.getElementById('co-payment-note');
     const splitDisplay = document.getElementById('preorder-split-display');
+    const advanceLabel = document.getElementById('co-advance-label');
 
     if (selectedMethod && payBox) payBox.classList.remove('hidden');
     
-    // Always calculate 25% advance and due on delivery for both in-stock and pre-order products
-    const advance = Math.round((subtotal * 0.25) / 5) * 5;
-    const due = total - advance;
-
-    if (splitDisplay) splitDisplay.classList.remove('hidden');
-    if (document.getElementById('co-advance-display')) document.getElementById('co-advance-display').textContent = `৳${advance.toFixed(2)}`;
-    if (document.getElementById('co-due-display')) document.getElementById('co-due-display').textContent = `৳${due.toFixed(2)}`;
-
+    // Check scenarios exactly as requested
     if (hasPreOrder) {
+      // PRE ORDER OR MIXED - USE 25% METHOD
+      const advance = Math.round((subtotal * 0.25) / 5) * 5;
+      if(splitDisplay) splitDisplay.classList.remove('hidden');
+      if(advanceLabel) advanceLabel.textContent = 'Advance Required (25%)';
+      if(document.getElementById('co-advance-display')) document.getElementById('co-advance-display').textContent = `৳${advance.toFixed(2)}`;
+      if(document.getElementById('co-due-display')) document.getElementById('co-due-display').textContent = `৳${(total - advance).toFixed(2)}`;
+      
       if(merchantLabel) merchantLabel.textContent = BKASH_NUMBER;
       if(txnContainer) txnContainer.classList.remove('hidden');
       if(paymentNote) paymentNote.textContent = `Please send 25% advance ৳${advance.toFixed(2)} to ${BKASH_NUMBER} via bKash Send Money to confirm pre-order.`;
     } 
     else if (selectedMethod === 'Bkash') {
+      // IN-STOCK BKASH - REQUIRE TOTAL
+      if(splitDisplay) splitDisplay.classList.remove('hidden');
+      if(advanceLabel) advanceLabel.textContent = 'Advance Required (Pay Now)';
+      if(document.getElementById('co-advance-display')) document.getElementById('co-advance-display').textContent = `৳${total.toFixed(2)}`;
+      if(document.getElementById('co-due-display')) document.getElementById('co-due-display').textContent = `৳0.00`;
+
       if(merchantLabel) merchantLabel.textContent = BKASH_NUMBER;
       if(txnContainer) txnContainer.classList.remove('hidden');
-      if(paymentNote) paymentNote.textContent = `Please send 25% advance ৳${advance.toFixed(2)} to ${BKASH_NUMBER} via bKash Send Money to confirm order.`;
+      if(paymentNote) paymentNote.textContent = `Please send total ৳${total.toFixed(2)} to ${BKASH_NUMBER} via bKash Send Money.`;
     } 
     else if (selectedMethod === 'Cash on Delivery') {
+      // IN-STOCK COD - REQUIRE ONLY DELIVERY FEE
+      if(splitDisplay) splitDisplay.classList.remove('hidden');
+      if(advanceLabel) advanceLabel.textContent = 'Advance Required (Pay Now)';
+      if(document.getElementById('co-advance-display')) document.getElementById('co-advance-display').textContent = `৳${deliveryFee.toFixed(2)}`;
+      if(document.getElementById('co-due-display')) document.getElementById('co-due-display').textContent = `৳${subtotal.toFixed(2)}`;
+
       if(merchantLabel) merchantLabel.textContent = COD_NUMBER;
       if(txnContainer) txnContainer.classList.remove('hidden');
-      if(paymentNote) paymentNote.textContent = `Please send 25% advance ৳${advance.toFixed(2)} to ${COD_NUMBER} via bKash Send Money to confirm order. Remaining due amount collected on delivery.`;
+      if(paymentNote) paymentNote.textContent = `Please send ONLY the delivery charge ৳${deliveryFee.toFixed(2)} to ${COD_NUMBER} via bKash Send Money to confirm.\nSubtotal collected on delivery.`;
     }
   }
 
@@ -1136,10 +1146,18 @@ async function initCheckoutPage() {
 
       const deliveryFee = calculateDeliveryFee(address);
       const total = subtotal + deliveryFee;
+      let paid = 0, due = 0;
       
-      // Calculate 25% advance and due for all order types (pre-order, in-stock, and mixed)
-      const paid = Math.round((subtotal * 0.25) / 5) * 5;
-      const due = total - paid;
+      if (hasPreOrder) {
+        paid = Math.round((subtotal * 0.25) / 5) * 5;
+        due = total - paid;
+      } else if (paymentMethod === 'Bkash') {
+        paid = total;
+        due = 0;
+      } else if (paymentMethod === 'Cash on Delivery') {
+        paid = deliveryFee;
+        due = subtotal;
+      }
 
       try {
         const orderData = {
